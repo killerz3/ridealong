@@ -12,7 +12,7 @@ const DEFAULTS = {
   viewerPort: 8083,
   agentPort: 9230,
   idleMinutes: 10,       // stop a workspace's Chrome after this long unused; 0 = never
-  screen: '1440x900',
+  screen: '1920x1200',   // virtual display size per workspace (the largest a page can be)
   fps: 30,               // video mode frame rate
   chrome: null,          // path to a Chrome/Chromium binary; auto-detected when empty
   sandbox: 'auto',       // true | false | 'auto'

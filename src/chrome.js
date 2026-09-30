@@ -72,19 +72,46 @@ async function launch({ profile, cfg }) {
   }
 }
 
+// If tabkennel died without stopping its browsers (crash, kill -9), their
+// Chrome and Xvfb are still running. Never start a second Chrome on the same
+// profile: find leftovers by profile path and by the pid file, and stop them.
+async function killStale(profile, pidFile) {
+  const victims = new Set();
+  let pids = {};
+  try { pids = JSON.parse(fs.readFileSync(pidFile, 'utf8')); } catch {}
+  for (const pid of Object.values(pids)) if (/Xvfb|chrome/i.test(read(`/proc/${pid}/cmdline`))) victims.add(+pid);
+  let procs = [];
+  try { procs = fs.readdirSync('/proc').filter(d => /^\d+$/.test(d)); } catch {}
+  // Chrome rewrites its process title, so args may be joined by spaces, not NULs
+  const flag = `--user-data-dir=${profile}`;
+  for (const pid of procs) {
+    const cmd = read(`/proc/${pid}/cmdline`);
+    const i = cmd.indexOf(flag);
+    if (i >= 0 && /^[\0 ]?$/.test(cmd.charAt(i + flag.length))) victims.add(+pid);
+  }
+  victims.delete(process.pid);
+  if (!victims.size) return;
+  for (const pid of victims) { try { process.kill(pid, 'SIGKILL'); } catch {} }
+  for (let i = 0; i < 30 && [...victims].some(pid => fs.existsSync(`/proc/${pid}`) && !/zombie|\) Z /.test(read(`/proc/${pid}/stat`))); i++) {
+    await new Promise(r => setTimeout(r, 100));
+  }
+}
+
 async function start({ profile, cfg, sandbox }) {
   const bin = findChrome(cfg.chrome);
   if (!bin) throw new Error('no Chrome found: run `tabkennel setup` or set "chrome" in config');
   const [w, h] = cfg.screen.split('x').map(Number);
+  const pidFile = path.join(path.dirname(profile), 'pids.json');
 
   fs.mkdirSync(profile, { recursive: true });
+  await killStale(profile, pidFile);
   for (const f of ['SingletonLock', 'SingletonSocket', 'SingletonCookie', 'DevToolsActivePort']) fs.rmSync(path.join(profile, f), { force: true });
 
   const xvfb = await startXvfb(cfg.screen);
   const args = [
     `--user-data-dir=${profile}`,
     '--remote-debugging-port=0', '--remote-debugging-address=127.0.0.1',
-    `--window-size=${w},${h}`, '--window-position=0,0',
+    `--window-size=${Math.min(w, 1440)},${Math.min(h, 900)}`, '--window-position=0,0',
     '--no-first-run', '--no-default-browser-check', '--password-store=basic',
     '--restore-last-session', '--hide-crash-restore-bubble',
     // agents' tabs sit in unfocused windows; keep them rendering at full speed
@@ -95,6 +122,7 @@ async function start({ profile, cfg, sandbox }) {
     ...cfg.chromeArgs,
   ];
   const proc = spawn(bin, args, { env: { ...process.env, DISPLAY: xvfb.display }, stdio: ['ignore', 'ignore', 'pipe'] });
+  try { fs.writeFileSync(pidFile, JSON.stringify({ chrome: proc.pid, xvfb: xvfb.proc.pid })); } catch {}
   const err = tail();
   proc.stderr.on('data', err.push);
 

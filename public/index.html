@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>tabkennel</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <style>
   :root {
     --bg:#f3f4f6; --panel:#fbfbfc; --raise:#fff; --line:#e1e4e8; --hover:#eceef1; --sel:#e3ecfd;
@@ -18,6 +19,7 @@
     color-scheme:dark;
   } }
   * { box-sizing:border-box }
+  [hidden] { display:none !important }
   html, body { height:100% }
   body { margin:0; display:grid; grid-template-columns:272px 1fr; background:var(--bg); color:var(--text);
     font:13px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif; overflow:hidden }
@@ -203,7 +205,8 @@ const colorOf = n => COLORS[[...n].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >
 const toast = msg => { const t = el('div', { className: 'toast', textContent: msg }); $('#toasts').append(t); setTimeout(() => t.remove(), 4200); };
 const send = m => ws && ws.readyState === 1 && ws.send(JSON.stringify(m));
 const hashWs = () => decodeURIComponent(location.hash.replace(/^#\/?/, '')) || null;
-const stageSize = () => { const r = stage.getBoundingClientRect(); return { w: Math.round(r.width), h: Math.round(r.height), dpr: devicePixelRatio || 1 }; };
+const MOBILE = matchMedia('(pointer: coarse)').matches && Math.min(screen.width, screen.height) < 820;
+const stageSize = () => { const r = stage.getBoundingClientRect(); return { w: Math.round(r.width), h: Math.round(r.height), dpr: devicePixelRatio || 1, mobile: MOBILE }; };
 
 // ---------- connection ----------
 function connect() {

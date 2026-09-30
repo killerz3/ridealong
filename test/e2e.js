@@ -161,10 +161,47 @@ test('a viewer holding a workspace keeps it awake', async () => {
   v.sock.close();
 });
 
-(async () => {
+const mainChromes = profile => fs.readdirSync('/proc').filter(d => /^\d+$/.test(d)).filter(pid => {
+  try { const c = fs.readFileSync(`/proc/${pid}/cmdline`, 'utf8'); return /[\0 ]$|^$/.test(c.split(`--user-data-dir=${profile}`)[1]?.charAt(0) ?? 'x') && !c.includes('--type='); } catch { return false; }
+});
+
+const rssMB = () => +fs.readFileSync(`/proc/${server.pid}/status`, 'utf8').match(/VmRSS:\s+(\d+)/)[1] / 1024;
+test('a viewer leaving while its tab closes does not leak', async () => {
+  const a = await agent('leak', 'erin');
+  const p = await a.newPage(); await p.goto(ANIM);
+  const v = await viewer('leak');
+  const tab = await until(() => v.last('tabs') && v.last('tabs').tabs.find(t => t.owner === 'erin'), 15000, 'tab');
+  v.send({ t: 'view', id: tab.id });
+  await until(() => v.frames.length > 5, 5000, 'frames');
+  const before = rssMB();
+  v.sock.close(); await p.close();
+  await sleep(6000);
+  assert.ok(rssMB() - before < 40, `server memory grew ${Math.round(rssMB() - before)} MB`);
+  await a.disconnect();
+});
+
+test('after a crash, restarting cleans up the old browser instead of doubling it', async () => {
+  const a = await agent('crash', 'dave');
+  const p = await a.newPage(); await p.goto(`http://127.0.0.1:${VP}/healthz?dave`);
+  const profile = path.join(home, 'workspaces', 'crash', 'profile');
+  assert.equal(mainChromes(profile).length, 1);
+  server.kill('SIGKILL');
+  await new Promise(r => server.once('exit', r));
+  assert.equal(mainChromes(profile).length, 1, 'the orphaned Chrome is still running');
+  await startServer();
+  const b = await agent('crash', 'dave');
+  assert.equal(mainChromes(profile).length, 1, 'exactly one Chrome on the profile');
+  await b.disconnect();
+});
+
+async function startServer() {
   server = spawn(process.execPath, [path.join(__dirname, '..', 'bin', 'tabkennel.js'), 'start'], { env, stdio: ['ignore', 'pipe', 'inherit'] });
   let log = ''; server.stdout.on('data', d => { log += d; if (process.env.VERBOSE) process.stdout.write(d); });
   await until(() => log.includes('tabkennel is running'), 10000, 'server start');
+}
+
+(async () => {
+  await startServer();
   let failed = 0;
   for (const t of tests) {
     const t0 = Date.now();

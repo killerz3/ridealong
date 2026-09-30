@@ -12,6 +12,7 @@ const WebSocket = require('ws');
 const { VideoCapture } = require('./video');
 const pkg = require('../package.json');
 
+const FAVICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#2f6fe4" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="3" fill="#fff"/><path d="M3 9h18M7 6.5h.01M10 6.5h.01"/></svg>';
 const FRAME_JPEG = 1, FRAME_KEY = 2, FRAME_DELTA = 3;
 
 function header(type, seq, w, h) {
@@ -46,6 +47,7 @@ function start({ cfg, manager }) {
     }
     if (url === '/logout') return send(res, 303, 'text/plain', '', { location: '/', 'set-cookie': 'tk=; Path=/; Max-Age=0' });
     if (url === '/healthz') return send(res, 200, 'text/plain', 'ok');
+    if (url === '/favicon.ico' || url === '/favicon.svg') return send(res, 200, 'image/svg+xml', FAVICON, { 'cache-control': 'max-age=86400' });
     if (!authed(req)) return send(res, url === '/' ? 200 : 401, 'text/html; charset=utf-8', page('login.html'));
     send(res, 200, 'text/html; charset=utf-8', page('index.html').replace('/*BOOT*/{}', boot));
   });
@@ -92,6 +94,7 @@ class ViewerSession {
   // ---- workspace + chrome connection ----
 
   async useWorkspace(name) {
+    if (this.closed) return;
     const w = this.manager.get(name);
     if (!w) return this.out({ t: 'toast', msg: 'Workspace names use a-z, 0-9, - and _' });
     if (this.w !== w) {
@@ -105,7 +108,7 @@ class ViewerSession {
     if (w.state !== 'awake') this.out({ t: 'state', state: 'waking', workspace: w.name });
     let chrome;
     try { chrome = await w.wake(); } catch (e) { return this.out({ t: 'state', state: 'error', workspace: w.name, msg: e.message }); }
-    if (this.w !== w || this.cdp) return;
+    if (this.closed || this.w !== w || this.cdp) return;
     await this.connect(chrome);
   }
 
@@ -113,7 +116,7 @@ class ViewerSession {
     const w = this.w;
     const cdp = new WebSocket(await chrome.wsUrl(), { perMessageDeflate: false, maxPayload: 256 << 20 });
     await new Promise((ok, no) => { cdp.once('open', ok); cdp.once('error', no); });
-    if (this.w !== w || this.cdp) return cdp.close();
+    if (this.closed || this.w !== w || this.cdp) return cdp.close();
     this.cdp = cdp; this.id = 0; this.waiters = new Map(); this.targets.clear();
     cdp.on('message', raw => this.onCdp(JSON.parse(raw)));
     cdp.on('close', () => { if (this.cdp === cdp) this.detach('asleep'); });
@@ -132,7 +135,8 @@ class ViewerSession {
     this.stopStream();
     if (this.w && this.w.tabmap && this.tabsSoon) this.w.tabmap.off('update', this.tabsSoon);
     if (this.cdp) { const c = this.cdp; this.cdp = null; c.close(); }
-    this.session = null;
+    this.session = null; this.current = null;
+    this.targets.clear();
     if (this.waiters) for (const r of this.waiters.values()) r({});
     this.waiters = new Map();
     if (state && this.w) this.out({ t: 'state', state, workspace: this.w.name, error: this.w.error });
@@ -171,7 +175,9 @@ class ViewerSession {
 
   async onCurrentGone() {
     this.stopStream();
+    if (this.current) this.targets.delete(this.current);
     this.session = null; this.current = null;
+    if (!this.cdp) return;
     const next = this.pageList().find(p => !p.owner) || this.pageList()[0];
     if (next) await this.view(next.id); else this.out({ t: 'view', id: null });
   }
@@ -188,6 +194,7 @@ class ViewerSession {
   // ---- viewing a tab ----
 
   async view(targetId) {
+    if (!this.cdp) return;
     this.stopStream();
     if (this.session) { this.send('Target.detachFromTarget', { sessionId: this.session }); this.session = null; }
     this.current = targetId;
@@ -208,11 +215,24 @@ class ViewerSession {
     if (r.targetId) await this.view(r.targetId);
   }
 
+  // Your own tabs render at the size of your viewer (phone-width on a phone);
+  // agents' tabs keep their own size so watching them doesn't change the page.
+  mine() { return this.w && !this.w.owners.get(this.current); }
+
   async startStream() {
     if (!this.session) return;
     this.inflight = 0; this.pendingAck = null; this.sent.clear();
-    if (this.mode === 'video') return this.startVideo();
+    if (this.mode === 'video') {
+      await this.onPage('Emulation.clearDeviceMetricsOverride');
+      return this.startVideo();
+    }
     const dpr = Math.min(this.stage.dpr || 1, 2);
+    if (this.mine()) {
+      await this.onPage('Emulation.setDeviceMetricsOverride', {
+        width: Math.max(200, this.stage.w), height: Math.max(200, this.stage.h),
+        deviceScaleFactor: this.stage.mobile ? dpr : 1, mobile: !!this.stage.mobile,
+      });
+    } else await this.onPage('Emulation.clearDeviceMetricsOverride');
     await this.onPage('Page.startScreencast', {
       format: 'jpeg', quality: this.quality,
       maxWidth: Math.round(this.stage.w * dpr), maxHeight: Math.round(this.stage.h * dpr),
@@ -262,17 +282,26 @@ class ViewerSession {
   async startVideo() {
     const targetId = this.current, w = this.w;
     const chrome = w.chrome;
-    // make the tab's window fill the display so the page can be captured
+    // put the tab's window at the top-left of the display, on top, so its page
+    // can be captured; your own tabs are also sized to your viewer
+    const measure = () => this.onPage('Runtime.evaluate', {
+      expression: 'JSON.stringify([screenX, screenY, outerWidth, outerHeight, innerWidth, innerHeight])', returnByValue: true,
+    });
     const win = await this.send('Browser.getWindowForTarget', { targetId });
     if (win.windowId) {
+      const b = win.bounds || {};
       await this.send('Browser.setWindowBounds', { windowId: win.windowId, bounds: { windowState: 'normal' } });
-      await this.send('Browser.setWindowBounds', { windowId: win.windowId, bounds: { left: 0, top: 0, width: chrome.width, height: chrome.height } });
+      let size = { width: Math.min(b.width || chrome.width, chrome.width), height: Math.min(b.height || chrome.height, chrome.height) };
+      if (this.mine()) {
+        const m = await measure();
+        const [, , ow, oh, iw, ih] = m.result ? JSON.parse(m.result.value) : [0, 0, 0, 0, 0, 0];
+        size = { width: Math.min(chrome.width, Math.max(400, this.stage.w + (ow - iw))), height: Math.min(chrome.height, Math.max(300, this.stage.h + (oh - ih))) };
+      }
+      await this.send('Browser.setWindowBounds', { windowId: win.windowId, bounds: { left: 0, top: 0, ...size } });
     }
     await this.send('Target.activateTarget', { targetId });
-    await new Promise(r => setTimeout(r, 120));
-    const ev = await this.onPage('Runtime.evaluate', {
-      expression: 'JSON.stringify([screenX, screenY, outerWidth, outerHeight, innerWidth, innerHeight, devicePixelRatio])', returnByValue: true,
-    });
+    await new Promise(r => setTimeout(r, 150));
+    const ev = await measure();
     if (this.current !== targetId || this.mode !== 'video' || !ev.result) return;
     const [sx, sy, ow, oh, iw, ih] = JSON.parse(ev.result.value);
     const x = Math.max(0, sx + Math.round((ow - iw) / 2)), y = Math.max(0, sy + (oh - ih));
@@ -319,7 +348,7 @@ class ViewerSession {
   async onMessage(m) {
     switch (m.t) {
       case 'hello':
-        this.stage = { w: m.w || 1280, h: m.h || 800, dpr: m.dpr || 1 };
+        this.stage = { w: m.w || 1280, h: m.h || 800, dpr: m.dpr || 1, mobile: !!m.mobile };
         if (m.mode === 'video' || m.mode === 'jpeg') this.mode = m.mode;
         this.visible = m.visible !== false;
         return this.useWorkspace(this.manager.get(m.workspace || '', { create: false }) ? m.workspace : 'default');
@@ -336,11 +365,12 @@ class ViewerSession {
         return w && w.setSettings({ idleMinutes: m.minutes === null ? null : Math.max(0, Math.min(1440, +m.minutes || 0)) });
       }
       case 'visible':
+        if (this.closed) return;
         this.visible = !!m.on;
         if (this.w) this.visible ? this.w.lease(this) : this.w.release(this);
         return;
       case 'size':
-        this.stage = { w: m.w, h: m.h, dpr: m.dpr || 1 };
+        this.stage = { w: m.w, h: m.h, dpr: m.dpr || 1, mobile: !!m.mobile };
         return this.restartStreamSoon();
       case 'mode':
         if (m.mode !== this.mode && (m.mode === 'video' || m.mode === 'jpeg')) { this.mode = m.mode; this.stopStream(); await this.startStream(); }
@@ -395,6 +425,7 @@ class ViewerSession {
   }
 
   close() {
+    this.closed = true;
     clearInterval(this.statsTimer); clearInterval(this.tabsTimer);
     clearTimeout(this.restartT); clearTimeout(this.tabsT); clearTimeout(this.wsTimer);
     this.manager.off('change', this.onChange); this.manager.off('tick', this.onChange);
