@@ -1,38 +1,60 @@
-// Per-bot CDP proxy: every bot shares one Chrome (same cookies/logins) but
-// only sees and controls the tabs it opened (plus popups those tabs open).
-// Tabs you open yourself in the viewer stay invisible to every bot.
-//   ws://127.0.0.1:9230/<bot>/devtools/browser
+// Agent-facing CDP proxy. Every agent in a workspace shares that workspace's
+// Chrome (same cookies/logins) but only sees and controls the tabs it opened,
+// plus popups those tabs open. Tabs you open yourself stay invisible to agents.
+//   ws://127.0.0.1:9230/<workspace>/<agent>/devtools/browser
+//   ws://127.0.0.1:9230/<agent>/devtools/browser        (workspace "default")
+// Connecting wakes the workspace, creating it if it doesn't exist yet.
 const http = require('http');
 const WebSocket = require('ws');
-const owners = require('./owners');
-const tabmap = require('./tabmap');
 
-const LOG = !!process.env.AB_LOG;
+const LOG = !!process.env.TABKENNEL_LOG;
 const TAB_TYPES = new Set(['page', 'tab']);
 const HOLD_MS = 2000;
+const ROUTE = /^\/(?:([^/]+)\/)?([\w.-]+)\/(devtools\/browser|json(?:\/version|\/list)?)\/?(?:\?.*)?$/;
 
-function start({ port, chrome }) {
-  tabmap.start(chrome);
+const resolve = (manager, url) => {
+  const m = url.match(ROUTE);
+  if (!m) return null;
+  const w = manager.get(m[1] || 'default');
+  return w && { w, bot: m[2], what: m[3] };
+};
 
+function start({ port, bind, manager }) {
   const server = http.createServer(async (req, res) => {
-    const m = req.url.match(/^\/([\w.-]+)\/json(\/version|\/list)?\/?$/);
-    if (!m) { res.writeHead(404); return res.end('connect to ws://127.0.0.1:' + port + '/<bot>/devtools/browser'); }
-    const bot = m[1];
-    if (m[2] === '/version') {
-      const v = await (await fetch(`${chrome}/json/version`)).json();
-      v.webSocketDebuggerUrl = `ws://127.0.0.1:${port}/${bot}/devtools/browser`;
-      return json(res, v);
-    }
-    const list = await (await fetch(`${chrome}/json/list`)).json();
-    json(res, list.filter(t => !TAB_TYPES.has(t.type) || owners.get(t.id) === bot));
+    const base = `ws://${req.headers.host || '127.0.0.1:' + port}`;
+    try {
+      // small management API for the CLI; this port is trusted (keep it on loopback)
+      if (req.url === '/api/workspaces') return json(res, manager.list());
+      const api = req.url.match(/^\/api\/workspaces\/([^/]+)\/(wake|sleep)$/);
+      if (api && req.method === 'POST') {
+        const w = manager.get(api[1]);
+        if (!w) return json(res, { error: 'bad workspace name' }, 400);
+        await (api[2] === 'wake' ? w.wake() : w.sleep());
+        return json(res, w.info());
+      }
+      const r = resolve(manager, req.url);
+      if (!r || r.what === 'devtools/browser') {
+        return json(res, { error: `connect to ${base}/<workspace>/<agent>/devtools/browser`, workspaces: manager.list().map(w => w.name) }, 404);
+      }
+      const chrome = await r.w.wake();
+      if (r.what === 'json/version') {
+        const v = await (await fetch(`${chrome.http}/json/version`)).json();
+        v.webSocketDebuggerUrl = `${base}/${r.w.name}/${r.bot}/devtools/browser`;
+        return json(res, v);
+      }
+      const list = await (await fetch(`${chrome.http}/json/list`)).json();
+      json(res, list.filter(t => !TAB_TYPES.has(t.type) || r.w.owners.get(t.id) === r.bot).map(t => ({ ...t, webSocketDebuggerUrl: undefined, devtoolsFrontendUrl: undefined })));
+    } catch (e) { json(res, { error: e.message }, 500); }
   });
 
   const wss = new WebSocket.Server({ server });
   wss.on('connection', (client, req) => {
-    const m = req.url.match(/^\/([\w.-]+)\/devtools\/browser/);
-    if (!m) return client.close();
-    const bot = m[1];
-    const log = (...a) => LOG && console.log(`[${bot}]`, ...a);
+    const r = resolve(manager, req.url);
+    if (!r || r.what !== 'devtools/browser') return client.close(1008, 'use /<workspace>/<agent>/devtools/browser');
+    const { w, bot } = r;
+    const log = (...a) => LOG && console.log(`[${w.name}/${bot}]`, ...a);
+    let tabmap, owners; // set once the workspace is awake
+    w.agentJoin(bot);
 
     let up = null;
     const upQueue = [];
@@ -115,10 +137,9 @@ function start({ port, chrome }) {
       clearInterval(holdTimer); holdTimer = null;
     };
     const onMapUpdate = () => drain();
-    tabmap.on('update', onMapUpdate);
 
     const onUp = raw => {
-      if (process.env.AB_LOG === '2') console.log('<', String(raw).slice(0, 180));
+      if (process.env.TABKENNEL_LOG === '2') console.log('<', String(raw).slice(0, 180));
       const msg = JSON.parse(raw);
       if (msg.id < 0) return; // replies to our housekeeping
       if (msg.id !== undefined) {
@@ -141,11 +162,14 @@ function start({ port, chrome }) {
       }
     };
 
-    client.on('message', raw => {
-      if (process.env.AB_LOG === '2') console.log('>', String(raw).slice(0, 180));
+    const early = [];
+    const onClient = raw => {
+      w.touch();
+      if (!up) return early.push(raw);
+      if (process.env.TABKENNEL_LOG === '2') console.log('>', String(raw).slice(0, 180));
       const msg = JSON.parse(raw);
       const p = msg.params || {};
-      const deny = why => { log('deny', msg.method, why); toClient({ id: msg.id, sessionId: msg.sessionId, error: { code: -32000, message: `agent-browser: ${why}` } }); };
+      const deny = why => { log('deny', msg.method, why); toClient({ id: msg.id, sessionId: msg.sessionId, error: { code: -32000, message: `tabkennel: ${why}` } }); };
       if (/^Target\.(attachToTarget|closeTarget|activateTarget|exposeDevToolsProtocol)$/.test(msg.method) && p.targetId) {
         const info = allTargets.get(p.targetId) || { targetId: p.targetId, type: 'page' };
         if (!visible.has(p.targetId) && verdict(info) !== 'yes') return deny('tab not owned by this bot');
@@ -155,22 +179,39 @@ function start({ port, chrome }) {
       if (msg.method === 'Target.createTarget') { creating++; msg.params = { ...p, newWindow: true }; }
       pending.set(msg.id, msg.method);
       upSend(msg);
-    });
+    };
+    client.on('message', onClient);
 
-    const close = () => { tabmap.off('update', onMapUpdate); clearInterval(holdTimer); client.close(); up && up.close(); };
+    let closed = false;
+    const close = () => {
+      if (closed) return; closed = true;
+      w.agentLeave(bot);
+      w.off('sleep', close);
+      if (tabmap) tabmap.off('update', onMapUpdate);
+      clearInterval(holdTimer);
+      client.close(); up && up.close();
+    };
     client.on('close', close); client.on('error', close);
+    w.on('sleep', close); // the workspace went to sleep: the agent reconnects to wake it
 
-    fetch(`${chrome}/json/version`).then(r => r.json()).then(({ webSocketDebuggerUrl }) => {
-      up = new WebSocket(webSocketDebuggerUrl, { perMessageDeflate: false, maxPayload: 256 << 20 });
-      up.on('open', () => upQueue.splice(0).forEach(m => up.send(m)));
-      up.on('message', onUp);
-      up.on('close', close); up.on('error', close);
-    }).catch(e => { log('chrome unreachable', e.message); close(); });
+    w.wake().then(async chrome => {
+      if (closed) return;
+      ({ tabmap, owners } = w);
+      tabmap.on('update', onMapUpdate);
+      const sock = new WebSocket(await chrome.wsUrl(), { perMessageDeflate: false, maxPayload: 256 << 20 });
+      sock.on('open', () => {
+        up = sock;
+        upQueue.splice(0).forEach(m => up.send(m));
+        early.splice(0).forEach(onClient);
+      });
+      sock.on('message', onUp);
+      sock.on('close', close); sock.on('error', close);
+    }).catch(e => { log('workspace failed to start', e.message); close(); });
   });
 
-  server.listen(port, '127.0.0.1', () => console.log(`bot proxy on ws://127.0.0.1:${port}/<bot>/devtools/browser`));
+  return new Promise((ok, fail) => { server.once('error', fail); server.listen(port, bind, () => ok(server)); });
 }
 
-function json(res, v) { res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify(v)); }
+function json(res, v, status = 200) { res.writeHead(status, { 'content-type': 'application/json' }); res.end(JSON.stringify(v, null, 2)); }
 
 module.exports = { start };

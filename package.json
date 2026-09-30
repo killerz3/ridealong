@@ -1,17 +1,24 @@
 {
-  "name": "agent-browser",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "name": "tabkennel",
+  "version": "0.1.0",
+  "description": "One logged-in browser for you and your AI agents: self-hosted Chrome with a web viewer, per-agent tab isolation and workspaces that sleep when idle.",
+  "bin": { "tabkennel": "bin/tabkennel.js" },
+  "main": "src/server.js",
+  "files": ["bin", "src", "public", "deploy", "README.md", "LICENSE"],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node bin/tabkennel.js start",
+    "test": "node test/e2e.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "engines": { "node": ">=20" },
+  "os": ["linux"],
+  "keywords": ["browser", "agents", "cdp", "chrome-devtools", "mcp", "claude", "playwright", "puppeteer", "self-hosted", "remote-browser"],
+  "repository": { "type": "git", "url": "git+https://github.com/killerz3/tabkennel.git" },
+  "license": "MIT",
   "dependencies": {
     "playwright-core": "^1.63.0",
-    "puppeteer-core": "^25.12.0",
     "ws": "^8.22.0"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^25.12.0"
   }
 }

@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>tabkennel</title>
+<style>
+  :root {
+    --bg:#f3f4f6; --panel:#fbfbfc; --raise:#fff; --line:#e1e4e8; --hover:#eceef1; --sel:#e3ecfd;
+    --text:#1c2128; --dim:#6a737d; --faint:#9aa3ad; --acc:#2f6fe4; --accText:#fff;
+    --ok:#1f9d55; --warn:#c98a00; --bad:#c9372c; --stage:#e8eaed; --shadow:0 8px 30px rgba(20,25,35,.14);
+    color-scheme:light;
+  }
+  @media (prefers-color-scheme: dark) { :root {
+    --bg:#0d1014; --panel:#12161b; --raise:#181d24; --line:#232a33; --hover:#1a2028; --sel:#1b2a40;
+    --text:#e3e8ee; --dim:#8a95a3; --faint:#5d6773; --acc:#6ea8ff; --accText:#0b1220;
+    --ok:#3fb96f; --warn:#e3b341; --bad:#ff7b72; --stage:#07090b; --shadow:0 10px 40px rgba(0,0,0,.5);
+    color-scheme:dark;
+  } }
+  * { box-sizing:border-box }
+  html, body { height:100% }
+  body { margin:0; display:grid; grid-template-columns:272px 1fr; background:var(--bg); color:var(--text);
+    font:13px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif; overflow:hidden }
+  button { font:inherit; color:inherit; background:none; border:0; cursor:pointer; padding:0 }
+  input, select { font:inherit; color:inherit }
+  svg { flex:none }
+  .ico { width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round }
+
+  /* sidebar */
+  aside { background:var(--panel); border-right:1px solid var(--line); display:flex; flex-direction:column; min-height:0;
+    padding-top:env(safe-area-inset-top,0px) }
+  .brand { display:flex; align-items:center; gap:8px; padding:14px 14px 10px; font-weight:650; font-size:14px }
+  .brand .v { color:var(--faint); font-weight:400; font-size:11px }
+  .brand .x { margin-left:auto; display:none }
+  .scroll { overflow:auto; flex:1; min-height:0; padding-bottom:8px }
+  .label { display:flex; align-items:center; justify-content:space-between; padding:12px 14px 5px; color:var(--dim);
+    font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase }
+  .label button { color:var(--dim); border-radius:6px; padding:2px 6px; font-size:12px; text-transform:none; letter-spacing:0; font-weight:500 }
+  .label button:hover { background:var(--hover); color:var(--text) }
+  .row { display:flex; align-items:center; gap:8px; margin:1px 6px; padding:6px 8px; border-radius:7px; cursor:pointer; min-height:32px }
+  .row:hover { background:var(--hover) }
+  .row.on { background:var(--sel) }
+  .row .t { flex:1; min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis }
+  .row .m { color:var(--faint); font-size:11px; white-space:nowrap }
+  .row .close { opacity:0; color:var(--dim); border-radius:5px; width:20px; height:20px; display:grid; place-items:center }
+  .row:hover .close, .row.on .close { opacity:1 }
+  .row .close:hover { background:var(--line); color:var(--bad) }
+  .dot { width:8px; height:8px; border-radius:50%; background:var(--faint); flex:none }
+  .dot.awake { background:var(--ok) } .dot.waking, .dot.sleeping { background:var(--warn); animation:pulse 1s infinite }
+  .dot.error { background:var(--bad) }
+  @keyframes pulse { 50% { opacity:.35 } }
+  .group { display:flex; align-items:center; gap:7px; padding:10px 14px 3px; color:var(--dim); font-size:12px }
+  .group b { font-weight:600; color:var(--text) }
+  .hint { color:var(--faint); padding:4px 14px 6px; font-size:12px }
+  .newws { display:flex; gap:6px; margin:4px 8px 2px }
+  .newws input { flex:1; min-width:0; padding:6px 9px; border:1px solid var(--line); border-radius:7px; background:var(--raise) }
+  .foot { border-top:1px solid var(--line); padding:10px; display:flex; gap:6px; padding-bottom:calc(10px + env(safe-area-inset-bottom,0px)) }
+  .btn { display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:7px 11px; border-radius:8px; border:1px solid var(--line);
+    background:var(--raise); white-space:nowrap }
+  .btn:hover { border-color:var(--faint) }
+  .btn.primary { background:var(--acc); color:var(--accText); border-color:transparent; font-weight:600 }
+  .btn.primary:hover { filter:brightness(1.08) }
+  .btn.grow { flex:1 }
+  .btn.danger { color:var(--bad) }
+
+  /* main */
+  main { display:flex; flex-direction:column; min-width:0; min-height:0 }
+  nav { display:flex; gap:4px; align-items:center; padding:7px 8px; border-bottom:1px solid var(--line); background:var(--panel);
+    padding-top:calc(7px + env(safe-area-inset-top,0px)) }
+  .ib { width:32px; height:32px; display:grid; place-items:center; border-radius:8px; color:var(--dim); flex:none }
+  .ib:hover { background:var(--hover); color:var(--text) }
+  .ib:disabled { opacity:.35; pointer-events:none }
+  .menu-btn { display:none }
+  #url { flex:1; min-width:60px; height:32px; padding:0 12px; border-radius:8px; border:1px solid var(--line); background:var(--raise) }
+  #url:focus { outline:2px solid var(--acc); outline-offset:-1px }
+  .seg { display:flex; border:1px solid var(--line); border-radius:8px; overflow:hidden; flex:none }
+  .seg button { padding:0 10px; height:30px; color:var(--dim); font-size:12px }
+  .seg button.on { background:var(--sel); color:var(--text); font-weight:600 }
+  .seg button:disabled { opacity:.4; cursor:not-allowed }
+  #stats { font:11px ui-monospace,SFMono-Regular,Menlo,monospace; color:var(--dim); padding:0 6px; white-space:nowrap; min-width:92px; text-align:right }
+  #stats.slow { color:var(--warn) }
+
+  #stage { flex:1; position:relative; min-height:0; display:grid; place-items:center; background:var(--stage); outline:none; overflow:hidden; touch-action:none }
+  #screen { max-width:100%; max-height:100%; display:block; cursor:default }
+  #stage:focus-visible #screen { box-shadow:0 0 0 2px var(--acc) }
+  .cover { position:absolute; inset:0; display:grid; place-items:center; text-align:center; padding:24px; background:var(--stage) }
+  .cover .box { max-width:360px }
+  .cover h2 { font-size:16px; margin:12px 0 6px }
+  .cover p { color:var(--dim); margin:0 0 16px }
+  .spin { width:28px; height:28px; border:3px solid var(--line); border-top-color:var(--acc); border-radius:50%; animation:spin .8s linear infinite; margin:auto }
+  @keyframes spin { to { transform:rotate(360deg) } }
+  .big { width:40px; height:40px; color:var(--faint); margin:auto; display:block }
+  #kbd { position:absolute; opacity:0; pointer-events:none; left:0; bottom:0; width:1px; height:1px }
+
+  /* popovers, modals, toasts */
+  .pop { position:absolute; z-index:20; background:var(--raise); border:1px solid var(--line); border-radius:10px; box-shadow:var(--shadow); padding:6px; min-width:230px }
+  .pop .item { display:flex; align-items:center; gap:8px; width:100%; text-align:left; padding:7px 9px; border-radius:7px }
+  .pop .item:hover { background:var(--hover) }
+  .pop .sub { padding:6px 9px 2px; color:var(--dim); font-size:12px }
+  .pop select { width:calc(100% - 18px); margin:4px 9px 8px; padding:6px; border-radius:7px; border:1px solid var(--line); background:var(--bg) }
+  .pop hr { border:0; border-top:1px solid var(--line); margin:5px 0 }
+  .scrim { position:fixed; inset:0; background:rgba(10,14,20,.45); display:grid; place-items:center; z-index:30; padding:16px }
+  .modal { background:var(--raise); border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow); width:100%; max-width:560px;
+    max-height:calc(100vh - 32px); overflow:auto; padding:20px }
+  .modal h3 { margin:0 0 4px; font-size:16px }
+  .modal .lead { color:var(--dim); margin:0 0 14px }
+  .modal .fields { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px }
+  .modal label { display:flex; flex-direction:column; gap:4px; color:var(--dim); font-size:12px; flex:1; min-width:150px }
+  .modal label input, .modal label select, .modal textarea { padding:8px 10px; border-radius:8px; border:1px solid var(--line); background:var(--bg); color:var(--text) }
+  .modal textarea { width:100%; min-height:70px; resize:vertical; margin:6px 0 }
+  .snip { margin:0 0 12px }
+  .snip .h { display:flex; align-items:center; justify-content:space-between; font-weight:600; margin-bottom:4px }
+  .snip .h button { color:var(--acc); font-size:12px; font-weight:500 }
+  .snip pre { margin:0; padding:10px 12px; background:var(--bg); border:1px solid var(--line); border-radius:8px; overflow-x:auto;
+    font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace; white-space:pre }
+  .note { color:var(--dim); font-size:12px; margin:4px 0 14px }
+  .actions { display:flex; justify-content:flex-end; gap:8px; margin-top:6px }
+  #toasts { position:fixed; bottom:calc(16px + env(safe-area-inset-bottom,0px)); left:50%; transform:translateX(-50%); display:flex; flex-direction:column; gap:8px; z-index:40; pointer-events:none }
+  .toast { background:var(--text); color:var(--bg); padding:9px 14px; border-radius:9px; box-shadow:var(--shadow); max-width:min(90vw,480px) }
+
+  @media (max-width:760px) {
+    body { grid-template-columns:1fr }
+    aside { position:fixed; inset:0 auto 0 0; width:min(86vw,300px); z-index:25; transform:translateX(-102%); transition:transform .18s ease; box-shadow:var(--shadow) }
+    body.drawer aside { transform:none }
+    .brand .x, .menu-btn { display:grid }
+    #stats, .hide-sm { display:none }
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></symbol>
+  <symbol id="i-fwd" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></symbol>
+  <symbol id="i-reload" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  <symbol id="i-plug" viewBox="0 0 24 24"><path d="M9 7V3M15 7V3M6 7h12v4a6 6 0 0 1-12 0zM12 17v4"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></symbol>
+  <symbol id="i-kbd" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></symbol>
+  <symbol id="i-box" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9h18M7 6.5h.01M10 6.5h.01"/></symbol>
+  <symbol id="i-bot" viewBox="0 0 24 24"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01"/></symbol>
+  <symbol id="i-out" viewBox="0 0 24 24"><path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10"/></symbol>
+</svg>
+
+<aside id="side">
+  <div class="brand"><svg class="ico"><use href="#i-box"/></svg>tabkennel <span class="v" id="ver"></span>
+    <button class="ib x" id="closeDrawer" aria-label="Close menu"><svg class="ico"><use href="#i-x"/></svg></button></div>
+  <div class="scroll">
+    <div class="label">Workspaces <button id="addWs" title="New workspace (separate logins)">+ New</button></div>
+    <div id="newWs" class="newws" hidden><input id="newWsName" placeholder="e.g. work" maxlength="32" spellcheck="false" aria-label="New workspace name"><button class="btn primary" id="newWsGo">Create</button></div>
+    <div id="wsList"></div>
+    <div class="label">Tabs <button id="newTab" title="Open a new tab">+ Tab</button></div>
+    <div id="tabList"></div>
+  </div>
+  <div class="foot">
+    <button class="btn primary grow" id="connectBtn"><svg class="ico"><use href="#i-plug"/></svg>Connect an agent</button>
+    <a class="btn" href="/logout" title="Sign out" aria-label="Sign out"><svg class="ico"><use href="#i-out"/></svg></a>
+  </div>
+</aside>
+
+<main>
+  <nav>
+    <button class="ib menu-btn" id="openDrawer" aria-label="Workspaces and tabs"><svg class="ico"><use href="#i-menu"/></svg></button>
+    <button class="ib" id="back" title="Back" aria-label="Back"><svg class="ico"><use href="#i-back"/></svg></button>
+    <button class="ib hide-sm" id="fwd" title="Forward" aria-label="Forward"><svg class="ico"><use href="#i-fwd"/></svg></button>
+    <button class="ib" id="reload" title="Reload" aria-label="Reload"><svg class="ico"><use href="#i-reload"/></svg></button>
+    <input id="url" placeholder="Search or enter address" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Address">
+    <button class="ib menu-btn" id="kbdBtn" title="Keyboard" aria-label="Show keyboard"><svg class="ico"><use href="#i-kbd"/></svg></button>
+    <div class="seg hide-sm" role="group" aria-label="Streaming mode">
+      <button id="mJpeg" title="Sends a sharp image only when the page changes. Light on the server; works everywhere.">Images</button>
+      <button id="mVideo" title="Streams H.264 video. Smoother scrolling and animation; uses more server CPU.">Video</button>
+    </div>
+    <span id="stats" title="Round trip · frames per second · bandwidth"></span>
+    <button class="ib" id="wsMenuBtn" title="Workspace options" aria-label="Workspace options"><svg class="ico"><use href="#i-more"/></svg></button>
+  </nav>
+  <div id="stage" tabindex="0" aria-label="Remote browser">
+    <canvas id="screen"></canvas>
+    <textarea id="kbd" autocapitalize="off" autocomplete="off" spellcheck="false" aria-hidden="true"></textarea>
+    <div class="cover" id="cover"><div class="box"><div class="spin"></div><h2>Connecting…</h2></div></div>
+  </div>
+</main>
+<div id="toasts" aria-live="polite"></div>
+
+<script>
+const BOOT = /*BOOT*/{};
+const $ = s => document.querySelector(s);
+const el = (tag, props = {}, ...kids) => { const e = Object.assign(document.createElement(tag), props); e.append(...kids.filter(k => k != null)); return e; };
+const icon = (id, cls = 'ico') => { const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s.setAttribute('class', cls); s.innerHTML = `<use href="#${id}"/>`; return s; };
+const store = { get: (k, d) => { try { return localStorage.getItem('tk.' + k) ?? d; } catch { return d; } }, set: (k, v) => { try { localStorage.setItem('tk.' + k, v); } catch {} } };
+$('#ver').textContent = BOOT.version ? 'v' + BOOT.version : '';
+
+const canvas = $('#screen'), ctx = canvas.getContext('2d', { alpha: false, desynchronized: true });
+const stage = $('#stage'), urlBox = $('#url'), cover = $('#cover');
+const VIDEO_OK = 'VideoDecoder' in window;
+let ws, workspaces = [], current = { ws: null, tab: null, tabs: [] }, frameSize = null, mode = store.get('mode', 'jpeg');
+if (!VIDEO_OK) mode = 'jpeg';
+let lastDrawn = 0, decoder = null, needKey = true, stateNow = 'connecting';
+
+const COLORS = ['#e8833a', '#9c6ade', '#1fa39a', '#d5507a', '#4d8de8', '#b59a1d', '#57a05a'];
+const colorOf = n => COLORS[[...n].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7) % COLORS.length];
+const toast = msg => { const t = el('div', { className: 'toast', textContent: msg }); $('#toasts').append(t); setTimeout(() => t.remove(), 4200); };
+const send = m => ws && ws.readyState === 1 && ws.send(JSON.stringify(m));
+const hashWs = () => decodeURIComponent(location.hash.replace(/^#\/?/, '')) || null;
+const stageSize = () => { const r = stage.getBoundingClientRect(); return { w: Math.round(r.width), h: Math.round(r.height), dpr: devicePixelRatio || 1 }; };
+
+// ---------- connection ----------
+function connect() {
+  ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws');
+  ws.binaryType = 'arraybuffer';
+  ws.onopen = () => send({ t: 'hello', workspace: hashWs() || store.get('ws', 'default'), mode, visible: !document.hidden, ...stageSize() });
+  ws.onclose = () => { showCover('connecting'); setTimeout(connect, 1500); };
+  ws.onmessage = e => typeof e.data === 'string' ? onJson(JSON.parse(e.data)) : onFrame(e.data);
+}
+
+function onJson(m) {
+  switch (m.t) {
+    case 'workspaces': workspaces = m.list; if (m.current) current.ws = m.current; renderWorkspaces(); renderTabs(); break;
+    case 'state':
+      current.ws = m.workspace; store.set('ws', m.workspace);
+      if (hashWs() !== m.workspace) history.replaceState(null, '', m.workspace === 'default' ? location.pathname : '#/' + m.workspace);
+      stateNow = m.state;
+      if (m.state !== 'awake') { current.tab = null; current.tabs = []; renderTabs(); }
+      showCover(m.state, m.msg || m.error);
+      renderWorkspaces();
+      break;
+    case 'tabs': current.tabs = m.tabs; if (m.current !== undefined) current.tab = m.current; renderTabs(); break;
+    case 'view':
+      current.tab = m.id; renderTabs(); resetVideo();
+      if (!m.id) showCover('notabs'); else if (stateNow === 'awake' && !frameSize) showCover('loading');
+      break;
+    case 'url': if (document.activeElement !== urlBox) urlBox.value = m.url === 'about:blank' ? '' : m.url; break;
+    case 'clip': navigator.clipboard && navigator.clipboard.writeText(m.text).catch(() => {}); break;
+    case 'dialog': m.closed ? closeModal('dialog') : openDialog(m); break;
+    case 'mode': mode = m.mode; renderMode(); if (m.msg) toast(m.msg); break;
+    case 'stats': renderStats(m); break;
+    case 'pong': rtt = Math.round(performance.now() - m.ts); break;
+    case 'toast': toast(m.msg); break;
+  }
+}
+
+// ---------- frames ----------
+// header: u8 type | pad | u32 seq | f32 cssWidth | f32 cssHeight, then JPEG or H.264
+function onFrame(buf) {
+  const dv = new DataView(buf);
+  const type = dv.getUint8(0), seq = dv.getUint32(4, true), w = dv.getFloat32(8, true), h = dv.getFloat32(12, true);
+  const data = new Uint8Array(buf, 16);
+  if (type === 1) {
+    createImageBitmap(new Blob([data], { type: 'image/jpeg' })).then(img => {
+      if (seq > lastDrawn) { lastDrawn = seq; draw(img, w, h); }
+      img.close(); send({ t: 'ack', seq });
+    }, () => send({ t: 'ack', seq }));
+  } else {
+    send({ t: 'ack', seq });
+    decodeVideo(type === 2, data, w, h);
+  }
+}
+
+function draw(src, w, h) {
+  const sw = src.displayWidth || src.width, sh = src.displayHeight || src.height;
+  if (canvas.width !== sw || canvas.height !== sh) { canvas.width = sw; canvas.height = sh; }
+  ctx.drawImage(src, 0, 0);
+  frameSize = { w, h };
+  if (!cover.hidden && stateNow === 'awake') cover.hidden = true;
+}
+
+let vFrameSize = null;
+function decodeVideo(key, data, w, h) {
+  if (!VIDEO_OK) return;
+  if (!decoder || decoder.state === 'closed') {
+    decoder = new VideoDecoder({
+      output: f => { draw(f, vFrameSize.w, vFrameSize.h); f.close(); },
+      error: () => { decoder = null; needKey = true; send({ t: 'keyframe' }); },
+    });
+    decoder.configure({ codec: 'avc1.42E033', optimizeForLatency: true });
+    needKey = true;
+  }
+  if (needKey && !key) return;
+  needKey = false;
+  vFrameSize = { w, h };
+  // a backed-up decoder means we're behind: drop to the next keyframe
+  if (decoder.decodeQueueSize > 6 && !key) { needKey = true; return; }
+  decoder.decode(new EncodedVideoChunk({ type: key ? 'key' : 'delta', timestamp: performance.now() * 1000, data }));
+}
+function resetVideo() { needKey = true; frameSize = null; if (decoder && decoder.state !== 'closed') decoder.reset(), decoder.close(); decoder = null; }
+
+// ---------- covers ----------
+function showCover(state, msg) {
+  cover.hidden = false;
+  const box = el('div', { className: 'box' });
+  const wsName = current.ws || 'default';
+  if (state === 'connecting') box.append(el('div', { className: 'spin' }), el('h2', { textContent: 'Connecting…' }));
+  else if (state === 'waking') box.append(el('div', { className: 'spin' }), el('h2', { textContent: `Starting “${wsName}”…` }), el('p', { textContent: 'Restoring your tabs. This takes a second or two.' }));
+  else if (state === 'loading') box.append(el('div', { className: 'spin' }));
+  else if (state === 'awake') { cover.hidden = true; return; }
+  else if (state === 'notabs') box.append(el('h2', { textContent: 'No open tabs' }), el('p', { textContent: 'Open one to start browsing.' }), el('button', { className: 'btn primary', textContent: 'New tab', onclick: () => send({ t: 'new' }) }));
+  else if (state === 'error') box.append(el('h2', { textContent: 'This workspace could not start' }), el('p', { textContent: msg || 'Unknown error' }), el('button', { className: 'btn primary', textContent: 'Try again', onclick: () => send({ t: 'wake' }) }));
+  else box.append(icon('i-moon', 'ico big'), el('h2', { textContent: `“${wsName}” is asleep` }),
+    el('p', { textContent: msg ? msg : 'Its browser was stopped to free memory. Your logins and tabs are saved.' }),
+    el('button', { className: 'btn primary', textContent: 'Wake it up', onclick: () => send({ t: 'wake' }) }));
+  cover.replaceChildren(box);
+}
+
+// ---------- sidebar ----------
+function renderWorkspaces() {
+  const list = $('#wsList'); list.replaceChildren();
+  for (const w of workspaces) {
+    const meta = w.state === 'awake' ? (w.agents.length ? `${w.agents.length} agent${w.agents.length > 1 ? 's' : ''}` : (w.sleepsIn != null && w.sleepsIn < 600 ? `sleeps in ${Math.max(1, Math.ceil(w.sleepsIn / 60))}m` : 'awake'))
+      : w.state === 'asleep' ? (w.error ? 'error' : 'asleep') : w.state + '…';
+    const row = el('div', { className: 'row' + (w.name === current.ws ? ' on' : ''), title: w.error || '' },
+      el('span', { className: 'dot ' + (w.error ? 'error' : w.state) }), el('span', { className: 't', textContent: w.name }), el('span', { className: 'm', textContent: meta }));
+    row.onclick = () => { if (w.name !== current.ws) switchWs(w.name); closeDrawer(); };
+    list.append(row);
+  }
+}
+
+function renderTabs() {
+  const list = $('#tabList'); list.replaceChildren();
+  const info = workspaces.find(w => w.name === current.ws);
+  if (!current.tabs.length) {
+    list.append(el('div', { className: 'hint', textContent: stateNow === 'awake' ? 'No tabs open.' : 'Tabs appear when the workspace is awake.' }));
+  }
+  const groups = new Map([[null, []]]);
+  for (const t of current.tabs) { if (!groups.has(t.owner)) groups.set(t.owner, []); groups.get(t.owner).push(t); }
+  for (const a of (info && info.agents) || []) if (!groups.has(a)) groups.set(a, []);
+  const names = [...groups.keys()].sort((a, b) => a === null ? -1 : b === null ? 1 : a.localeCompare(b));
+  for (const n of names) {
+    const tabs = groups.get(n);
+    if (n === null && !tabs.length) continue;
+    const live = n && info && info.agents.includes(n);
+    list.append(el('div', { className: 'group' }, n ? el('span', { className: 'dot', style: `background:${colorOf(n)}` }) : null,
+      el('b', { textContent: n ? n : 'You' }), n ? el('span', { textContent: live ? '· connected' : '· agent' }) : null));
+    if (!tabs.length) list.append(el('div', { className: 'hint', textContent: 'Connected, no tabs yet.' }));
+    for (const t of tabs) {
+      const x = el('button', { className: 'close', title: 'Close tab', ariaLabel: 'Close tab', onclick: e => { e.stopPropagation(); send({ t: 'close', id: t.id }); } }, icon('i-x'));
+      const row = el('div', { className: 'row' + (t.id === current.tab ? ' on' : ''), title: t.url },
+        el('span', { className: 't', textContent: t.title || t.url || 'New tab' }), x);
+      row.onclick = () => { send({ t: 'view', id: t.id }); closeDrawer(); stage.focus(); };
+      list.append(row);
+    }
+  }
+}
+
+function switchWs(name) {
+  current = { ws: name, tab: null, tabs: [] };
+  resetVideo(); renderTabs();
+  send({ t: 'workspace', name });
+}
+
+$('#addWs').onclick = () => { $('#newWs').hidden = !$('#newWs').hidden; $('#newWsName').focus(); };
+const createWs = () => {
+  const name = $('#newWsName').value.trim().toLowerCase();
+  if (!/^[a-z0-9][a-z0-9_-]{0,31}$/.test(name)) return toast('Use lowercase letters, numbers, - or _ (max 32).');
+  $('#newWs').hidden = true; $('#newWsName').value = '';
+  switchWs(name); closeDrawer();
+  toast(`Created “${name}”. It has its own logins; sign in to sites here.`);
+};
+$('#newWsGo').onclick = createWs;
+$('#newWsName').onkeydown = e => { if (e.key === 'Enter') createWs(); if (e.key === 'Escape') $('#newWs').hidden = true; };
+$('#newTab').onclick = () => { send({ t: 'new' }); closeDrawer(); setTimeout(() => urlBox.focus(), 50); };
+
+// ---------- toolbar ----------
+$('#back').onclick = () => send({ t: 'back' });
+$('#fwd').onclick = () => send({ t: 'fwd' });
+$('#reload').onclick = () => send({ t: 'reload' });
+urlBox.onkeydown = e => { if (e.key === 'Enter') { send({ t: 'nav', url: urlBox.value }); stage.focus(); } if (e.key === 'Escape') stage.focus(); };
+urlBox.onfocus = () => urlBox.select();
+
+function renderMode() {
+  $('#mJpeg').classList.toggle('on', mode === 'jpeg');
+  $('#mVideo').classList.toggle('on', mode === 'video');
+  $('#mVideo').disabled = !VIDEO_OK;
+  if (!VIDEO_OK) $('#mVideo').title = 'Video needs a secure page (https or localhost) and a browser with WebCodecs.';
+}
+const setMode = m => { if (m === mode) return; mode = m; store.set('mode', m); resetVideo(); renderMode(); send({ t: 'mode', mode: m }); };
+$('#mJpeg').onclick = () => setMode('jpeg');
+$('#mVideo').onclick = () => setMode('video');
+
+let rtt = 0;
+function renderStats(s) {
+  const r = Math.max(s.rtt || 0, rtt || 0);
+  const kb = s.kbps > 999 ? (s.kbps / 1000).toFixed(1) + ' Mb/s' : s.kbps + ' kb/s';
+  $('#stats').textContent = `${r} ms · ${s.fps} fps · ${kb}`;
+  $('#stats').classList.toggle('slow', r > 200);
+}
+setInterval(() => send({ t: 'ping', ts: performance.now() }), 2000);
+
+// workspace menu
+let pop = null;
+function closePop() { if (pop) { pop.remove(); pop = null; } }
+$('#wsMenuBtn').onclick = e => {
+  e.stopPropagation();
+  if (pop) return closePop();
+  const w = workspaces.find(x => x.name === current.ws); if (!w) return;
+  const r = $('#wsMenuBtn').getBoundingClientRect();
+  const sel = el('select', { ariaLabel: 'Sleep after' });
+  const opts = [[null, `Default (${BOOT.idleMinutes ? BOOT.idleMinutes + ' min' : 'never'})`], [2, '2 minutes'], [5, '5 minutes'], [10, '10 minutes'], [30, '30 minutes'], [60, '1 hour'], [240, '4 hours'], [0, 'Never']];
+  for (const [v, label] of opts) sel.append(el('option', { value: v === null ? '' : v, textContent: label, selected: w.customIdle ? v === w.idleMinutes : v === null }));
+  sel.onchange = () => { send({ t: 'idle', name: w.name, minutes: sel.value === '' ? null : +sel.value }); toast('Saved'); };
+  pop = el('div', { className: 'pop', style: `top:${r.bottom + 6}px;right:${innerWidth - r.right}px` },
+    el('div', { className: 'sub', textContent: `Workspace “${w.name}”: stop its browser when unused for` }), sel, el('hr'),
+    el('button', { className: 'item', onclick: () => { closePop(); send({ t: 'sleep', name: w.name }); } }, icon('i-moon'), 'Put to sleep now'),
+    w.name !== 'default' ? el('button', { className: 'item btn danger', style: 'border:0', onclick: () => { closePop(); confirmDelete(w.name); } }, icon('i-x'), 'Delete workspace…') : null);
+  pop.onclick = e => e.stopPropagation();
+  document.body.append(pop);
+};
+document.addEventListener('click', closePop);
+
+// ---------- modals ----------
+function modal(id, ...content) {
+  closeModal(id);
+  const m = el('div', { className: 'modal', role: 'dialog' }, ...content);
+  const s = el('div', { className: 'scrim', id: 'modal-' + id }, m);
+  s.onclick = e => { if (e.target === s && id !== 'dialog') s.remove(); };
+  document.body.append(s);
+  return m;
+}
+function closeModal(id) { const s = document.getElementById('modal-' + id); if (s) s.remove(); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closePop(); ['connect', 'delete'].forEach(closeModal); } });
+
+function openDialog(d) {
+  const input = d.type === 'prompt' ? el('textarea', { value: d.value }) : null;
+  const reply = accept => { send({ t: 'dialog', accept, text: input ? input.value : undefined }); closeModal('dialog'); stage.focus(); };
+  const title = { alert: 'The page says', confirm: 'The page asks', prompt: 'The page asks', beforeunload: 'Leave this page?' }[d.type] || 'The page says';
+  modal('dialog', el('h3', { textContent: title }), el('p', { className: 'lead', style: 'white-space:pre-wrap', textContent: d.message }), input,
+    el('div', { className: 'actions' },
+      d.type !== 'alert' ? el('button', { className: 'btn', textContent: 'Cancel', onclick: () => reply(false) }) : null,
+      el('button', { className: 'btn primary', textContent: d.type === 'beforeunload' ? 'Leave' : 'OK', onclick: () => reply(true) })));
+}
+
+function confirmDelete(name) {
+  const input = el('input', { placeholder: name, spellcheck: false });
+  const go = el('button', { className: 'btn primary', textContent: 'Delete forever', disabled: true, onclick: () => { send({ t: 'delete', name }); closeModal('delete'); toast(`Deleted “${name}”`); } });
+  input.oninput = () => go.disabled = input.value !== name;
+  modal('delete', el('h3', { textContent: `Delete “${name}”?` }),
+    el('p', { className: 'lead', textContent: 'This removes its browser profile: every login, cookie and saved tab in it. Type the name to confirm.' }),
+    el('label', {}, input), el('div', { className: 'actions' }, el('button', { className: 'btn', textContent: 'Cancel', onclick: () => closeModal('delete') }), go));
+  input.focus();
+}
+
+$('#connectBtn').onclick = () => {
+  const name = el('input', { value: store.get('agent', 'my-agent'), spellcheck: false, autocapitalize: 'off' });
+  const wsSel = el('select');
+  for (const w of workspaces) wsSel.append(el('option', { value: w.name, textContent: w.name, selected: w.name === current.ws }));
+  const out = el('div');
+  const render = () => {
+    const agent = (name.value.trim() || 'my-agent').replace(/[^\w.-]/g, '-');
+    store.set('agent', agent);
+    const host = `127.0.0.1:${BOOT.agentPort}`, ep = `ws://${host}/${wsSel.value}/${agent}/devtools/browser`;
+    const snips = [
+      ['Claude Code', `claude mcp add browser -- npx -y chrome-devtools-mcp@latest \\\n  --wsEndpoint ${ep}`],
+      ['Any MCP client (JSON)', JSON.stringify({ mcpServers: { browser: { command: 'npx', args: ['-y', 'chrome-devtools-mcp@latest', '--wsEndpoint', ep] } } }, null, 2)],
+      ['Playwright', `const browser = await chromium.connectOverCDP('http://${host}/${wsSel.value}/${agent}');\nconst page = await browser.contexts()[0].newPage();`],
+      ['Puppeteer', `const browser = await puppeteer.connect({ browserWSEndpoint: '${ep}' });\nconst page = await browser.newPage();`],
+    ];
+    out.replaceChildren(...snips.map(([h, code]) => {
+      const b = el('button', { textContent: 'Copy' });
+      b.onclick = () => navigator.clipboard.writeText(code).then(() => { b.textContent = 'Copied'; setTimeout(() => b.textContent = 'Copy', 1500); }, () => toast('Copy failed; select the text instead'));
+      return el('div', { className: 'snip' }, el('div', { className: 'h' }, el('span', { textContent: h }), b), el('pre', { textContent: code }));
+    }));
+  };
+  name.oninput = render; wsSel.onchange = render; render();
+  modal('connect', el('h3', { textContent: 'Connect an agent' }),
+    el('p', { className: 'lead', textContent: 'Agents share this workspace’s logins but only see the tabs they open. Their tabs show up in the sidebar live.' }),
+    el('div', { className: 'fields' }, el('label', {}, 'Agent name', name), el('label', {}, 'Workspace', wsSel)), out,
+    el('p', { className: 'note', textContent: `Run these on the machine where tabkennel runs; the agent port (${BOOT.agentPort}) only listens locally. Anything that reaches it is signed in as you, so keep it that way. A workspace that doesn’t exist yet is created when an agent first connects to it.` }),
+    el('div', { className: 'actions' }, el('button', { className: 'btn', textContent: 'Done', onclick: () => closeModal('connect') })));
+};
+
+// ---------- drawer (small screens) ----------
+const closeDrawer = () => document.body.classList.remove('drawer');
+$('#openDrawer').onclick = () => document.body.classList.add('drawer');
+$('#closeDrawer').onclick = closeDrawer;
+
+// ---------- input ----------
+const pos = e => {
+  const r = canvas.getBoundingClientRect();
+  return { x: (e.clientX - r.left) / r.width * frameSize.w, y: (e.clientY - r.top) / r.height * frameSize.h };
+};
+const mods = e => ({ alt: e.altKey, ctrl: e.ctrlKey, meta: e.metaKey, shift: e.shiftKey });
+const BTN = ['left', 'middle', 'right'];
+let clicks = 0, lastDown = 0, moveQueued = null;
+canvas.addEventListener('mousedown', e => {
+  if (!frameSize) return; e.preventDefault(); stage.focus();
+  clicks = Date.now() - lastDown < 400 ? clicks + 1 : 1; lastDown = Date.now();
+  send({ t: 'mouse', type: 'mousePressed', ...pos(e), button: BTN[e.button], buttons: e.buttons, clickCount: clicks, ...mods(e) });
+});
+window.addEventListener('mouseup', e => frameSize && e.target === canvas && send({ t: 'mouse', type: 'mouseReleased', ...pos(e), button: BTN[e.button], buttons: e.buttons, clickCount: clicks, ...mods(e) }));
+canvas.addEventListener('mousemove', e => {
+  if (!frameSize) return;
+  const m = { t: 'mouse', type: 'mouseMoved', ...pos(e), button: e.buttons & 1 ? 'left' : 'none', buttons: e.buttons, ...mods(e) };
+  if (!moveQueued) requestAnimationFrame(() => { send(moveQueued); moveQueued = null; });
+  moveQueued = m;
+});
+let wheelQ = null;
+canvas.addEventListener('wheel', e => {
+  if (!frameSize) return; e.preventDefault();
+  const k = e.deltaMode === 1 ? 40 : e.deltaMode === 2 ? 800 : 1;
+  if (wheelQ) { wheelQ.dx += e.deltaX * k; wheelQ.dy += e.deltaY * k; return; }
+  wheelQ = { t: 'mouse', type: 'mouseWheel', ...pos(e), dx: e.deltaX * k, dy: e.deltaY * k, ...mods(e) };
+  requestAnimationFrame(() => { send(wheelQ); wheelQ = null; });
+}, { passive: false });
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+// touch: tap = click, drag = scroll, keyboard button opens the on-screen keyboard
+let touch = null;
+canvas.addEventListener('touchstart', e => {
+  if (!frameSize || e.touches.length !== 1) return;
+  const t = e.touches[0]; touch = { x: t.clientX, y: t.clientY, sx: t.clientX, sy: t.clientY, moved: false };
+}, { passive: true });
+canvas.addEventListener('touchmove', e => {
+  if (!touch || e.touches.length !== 1) return; e.preventDefault();
+  const t = e.touches[0], r = canvas.getBoundingClientRect(), k = frameSize.w / r.width;
+  if (Math.hypot(t.clientX - touch.sx, t.clientY - touch.sy) > 8) touch.moved = true;
+  if (touch.moved) send({ t: 'mouse', type: 'mouseWheel', ...pos(t), dx: (touch.x - t.clientX) * k, dy: (touch.y - t.clientY) * k });
+  touch.x = t.clientX; touch.y = t.clientY;
+}, { passive: false });
+canvas.addEventListener('touchend', e => {
+  if (!touch) return;
+  if (!touch.moved) {
+    e.preventDefault();
+    const p = pos({ clientX: touch.sx, clientY: touch.sy });
+    send({ t: 'mouse', type: 'mousePressed', ...p, button: 'left', buttons: 1, clickCount: 1 });
+    send({ t: 'mouse', type: 'mouseReleased', ...p, button: 'left', buttons: 0, clickCount: 1 });
+  }
+  touch = null;
+});
+
+const kbd = $('#kbd');
+$('#kbdBtn').onclick = () => { kbd.value = ''; kbd.focus(); };
+kbd.addEventListener('input', e => {
+  if (e.inputType === 'deleteContentBackward') send({ t: 'key', type: 'keyDown', key: 'Backspace', code: 'Backspace', keyCode: 8 }), send({ t: 'key', type: 'keyUp', key: 'Backspace', code: 'Backspace', keyCode: 8 });
+  else if (e.data) send({ t: 'text', text: e.data });
+  kbd.value = ' ';
+});
+kbd.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); send({ t: 'key', type: 'keyDown', key: 'Enter', code: 'Enter', keyCode: 13 }); send({ t: 'key', type: 'keyUp', key: 'Enter', code: 'Enter', keyCode: 13 }); } });
+
+stage.addEventListener('keydown', e => {
+  if (e.target === kbd || !current.tab) return;
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') return; // the paste event carries the text
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'l') { e.preventDefault(); return urlBox.focus(); }
+  e.preventDefault();
+  send({ t: 'key', type: 'keyDown', key: e.key, code: e.code, keyCode: e.keyCode, ...mods(e) });
+});
+stage.addEventListener('keyup', e => { if (e.target === kbd || !current.tab) return; e.preventDefault(); send({ t: 'key', type: 'keyUp', key: e.key, code: e.code, keyCode: e.keyCode, ...mods(e) }); });
+document.addEventListener('paste', e => {
+  if (e.target === urlBox || e.target.closest('.modal')) return;
+  const text = e.clipboardData.getData('text'); if (text) { e.preventDefault(); send({ t: 'text', text }); }
+});
+
+// ---------- sizing + visibility ----------
+let sizeT;
+new ResizeObserver(() => { clearTimeout(sizeT); sizeT = setTimeout(() => send({ t: 'size', ...stageSize() }), 200); }).observe(stage);
+document.addEventListener('visibilitychange', () => send({ t: 'visible', on: !document.hidden }));
+window.addEventListener('hashchange', () => { const n = hashWs() || 'default'; if (n !== current.ws) switchWs(n); });
+
+renderMode();
+connect();
+</script>
+</body>
+</html>
