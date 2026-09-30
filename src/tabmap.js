@@ -52,11 +52,13 @@ class TabMap extends EventEmitter {
           // a popup inherits its opener's owner
           if (!this.owners.get(t.targetId) && t.openerId && this.owners.get(t.openerId)) this.owners.set(t.targetId, this.owners.get(t.openerId));
           this.owners.claim(t.targetId, t.url);
+          this.owners.noteUrl(t.targetId, t.url);
           this.tabToPage.set(tabSessions.get(msg.sessionId), t.targetId);
           this.emit('update');
         }
-      } else if (msg.method === 'Target.targetInfoChanged' && p.targetInfo.type === 'page') {
+      } else if ((msg.method === 'Target.targetInfoChanged' || msg.method === 'Target.targetCreated') && p.targetInfo.type === 'page') {
         this.owners.claim(p.targetInfo.targetId, p.targetInfo.url);
+        this.owners.noteUrl(p.targetInfo.targetId, p.targetInfo.url);
       } else if (msg.method === 'Target.targetDestroyed') {
         if (this.owners.get(p.targetId)) this.owners.del(p.targetId);
       } else if (msg.method === 'Target.detachedFromTarget' && tabSessions.has(p.sessionId)) {

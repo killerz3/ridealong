@@ -185,12 +185,15 @@ test('after a crash, restarting cleans up the old browser instead of doubling it
   const p = await a.newPage(); await p.goto(`http://127.0.0.1:${VP}/healthz?dave`);
   const profile = path.join(home, 'workspaces', 'crash', 'profile');
   assert.equal(mainChromes(profile).length, 1);
+  await sleep(11000); // Chrome writes its session about every 10 s
   server.kill('SIGKILL');
   await new Promise(r => server.once('exit', r));
   assert.equal(mainChromes(profile).length, 1, 'the orphaned Chrome is still running');
   await startServer();
+  assert.equal(mainChromes(profile).length, 0, 'startup stops browsers left by the crash');
   const b = await agent('crash', 'dave');
   assert.equal(mainChromes(profile).length, 1, 'exactly one Chrome on the profile');
+  assert.ok((await b.pages()).some(p => p.url().endsWith('?dave')), 'tabs survive the crash');
   await b.disconnect();
 });
 

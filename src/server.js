@@ -5,6 +5,7 @@ const agentproxy = require('./agentproxy');
 async function serve(cfg) {
   if (!cfg.password) throw new Error('no password set: run `tabkennel setup` or set TABKENNEL_PASSWORD');
   const manager = new Manager(cfg);
+  await manager.ready;
   const listen = async (what, port, fn) => {
     try { return await fn(); } catch (e) {
       if (e.code === 'EADDRINUSE') throw new Error(`port ${port} (${what}) is already in use. Is tabkennel already running? Try \`tabkennel status\`.`);

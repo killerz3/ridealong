@@ -73,6 +73,7 @@ class Workspace extends EventEmitter {
       if (this.sleeping) await this.sleeping;
       this.state = 'waking'; this.error = null; this.changed();
       try {
+        this.owners.prepareRestore();
         this.chrome = await chrome.launch({ profile: this.profile, cfg: this.manager.cfg });
         this.tabmap = new TabMap(this.chrome, this.owners);
         await this.tabmap.start();
@@ -134,6 +135,8 @@ class Manager extends EventEmitter {
     this.all = new Map();
     for (const d of fs.readdirSync(this.root)) if (NAME.test(d)) this.get(d);
     this.get('default');
+    // browsers left running by a crashed previous run hold RAM; stop them
+    this.ready = Promise.all([...this.all.values()].map(w => chrome.killStale(w.profile, path.join(w.dir, 'pids.json'))));
     this.timer = setInterval(() => this.all.forEach(w => w.idleCheck()), 15e3);
     // tick so "sleeps in" countdowns stay fresh in the viewer
     this.tick = setInterval(() => this.emit('tick'), 30e3);

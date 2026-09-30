@@ -76,10 +76,11 @@ async function launch({ profile, cfg }) {
 // Chrome and Xvfb are still running. Never start a second Chrome on the same
 // profile: find leftovers by profile path and by the pid file, and stop them.
 async function killStale(profile, pidFile) {
-  const victims = new Set();
+  const victims = new Set(), displays = new Set();
   let pids = {};
   try { pids = JSON.parse(fs.readFileSync(pidFile, 'utf8')); } catch {}
-  for (const pid of Object.values(pids)) if (/Xvfb|chrome/i.test(read(`/proc/${pid}/cmdline`))) victims.add(+pid);
+  if (pids.chrome && /chrome/i.test(read(`/proc/${pids.chrome}/cmdline`))) victims.add(+pids.chrome);
+  if (pids.xvfb && /Xvfb/.test(read(`/proc/${pids.xvfb}/cmdline`))) displays.add(+pids.xvfb);
   let procs = [];
   try { procs = fs.readdirSync('/proc').filter(d => /^\d+$/.test(d)); } catch {}
   // Chrome rewrites its process title, so args may be joined by spaces, not NULs
@@ -90,11 +91,17 @@ async function killStale(profile, pidFile) {
     if (i >= 0 && /^[\0 ]?$/.test(cmd.charAt(i + flag.length))) victims.add(+pid);
   }
   victims.delete(process.pid);
-  if (!victims.size) return;
-  for (const pid of victims) { try { process.kill(pid, 'SIGKILL'); } catch {} }
-  for (let i = 0; i < 30 && [...victims].some(pid => fs.existsSync(`/proc/${pid}`) && !/zombie|\) Z /.test(read(`/proc/${pid}/stat`))); i++) {
-    await new Promise(r => setTimeout(r, 100));
-  }
+  const alive = set => [...set].filter(pid => fs.existsSync(`/proc/${pid}`) && !/\) Z /.test(read(`/proc/${pid}/stat`)));
+  const stop = async (set, graceMs) => {
+    const signal = sig => alive(set).forEach(pid => { try { process.kill(pid, sig); } catch {} });
+    signal('SIGTERM');
+    for (let i = 0; i < graceMs / 100 && alive(set).length; i++) await new Promise(r => setTimeout(r, 100));
+    signal('SIGKILL');
+    for (let i = 0; i < 20 && alive(set).length; i++) await new Promise(r => setTimeout(r, 100));
+  };
+  // Chrome first (SIGTERM lets it save open tabs), then its display
+  if (victims.size) await stop(victims, 5000);
+  if (displays.size) await stop(displays, 1000);
 }
 
 async function start({ profile, cfg, sandbox }) {
@@ -162,4 +169,4 @@ async function start({ profile, cfg, sandbox }) {
   return chrome;
 }
 
-module.exports = { launch, findChrome, sandboxWorks, which };
+module.exports = { launch, findChrome, sandboxWorks, which, killStale };
