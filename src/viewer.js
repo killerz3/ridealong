@@ -232,11 +232,23 @@ class ViewerSession {
         width: Math.max(200, this.stage.w), height: Math.max(200, this.stage.h),
         deviceScaleFactor: this.stage.mobile ? dpr : 1, mobile: !!this.stage.mobile,
       });
+      // on a phone, look like a phone so sites send their mobile layout
+      await this.onPage('Emulation.setTouchEmulationEnabled', { enabled: !!this.stage.mobile, maxTouchPoints: 5 });
+      await this.onPage('Emulation.setUserAgentOverride', { userAgent: this.stage.mobile ? await this.mobileUA() : '' });
     } else await this.onPage('Emulation.clearDeviceMetricsOverride');
     await this.onPage('Page.startScreencast', {
       format: 'jpeg', quality: this.quality,
       maxWidth: Math.round(this.stage.w * dpr), maxHeight: Math.round(this.stage.h * dpr),
     });
+  }
+
+  async mobileUA() {
+    if (!this._ua) {
+      const v = await this.send('Browser.getVersion');
+      const ver = ((v.userAgent || '').match(/Chrome\/([\d.]+)/) || [, '140.0.0.0'])[1].replace(/\.\d+\.\d+\.\d+$/, '.0.0.0');
+      this._ua = `Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${ver} Mobile Safari/537.36`;
+    }
+    return this._ua;
   }
 
   stopStream() {

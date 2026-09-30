@@ -4,7 +4,7 @@
   "description": "One logged-in browser for you and your AI agents: self-hosted Chrome with a web viewer, per-agent tab isolation and workspaces that sleep when idle.",
   "bin": { "tabkennel": "bin/tabkennel.js" },
   "main": "src/server.js",
-  "files": ["bin", "src", "public", "deploy", "README.md", "LICENSE"],
+  "files": ["bin", "src", "public", "README.md", "LICENSE"],
   "scripts": {
     "start": "node bin/tabkennel.js start",
     "test": "node test/e2e.js"
