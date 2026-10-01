@@ -21,7 +21,7 @@ On a Linux server or VM with Node 20+:
 
 ```sh
 sudo apt-get install -y xvfb ffmpeg      # ffmpeg is optional (video mode)
-npm install -g github:killerz3/tabkennel
+npm install -g https://github.com/killerz3/tabkennel/releases/latest/download/tabkennel.tgz
 tabkennel setup
 ```
 
