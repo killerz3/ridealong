@@ -1,6 +1,12 @@
 # tabkennel: one logged-in browser for you and your agents
-FROM node:22-bookworm-slim
+FROM node:22-bookworm-slim AS build
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci --ignore-scripts
+COPY . .
+RUN npm run build
 
+FROM node:22-bookworm-slim
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
     TABKENNEL_HOME=/data \
     TABKENNEL_BIND=0.0.0.0 \
@@ -9,7 +15,7 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
 
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev \
+RUN npm ci --omit=dev --ignore-scripts \
  && apt-get update \
  && apt-get install -y --no-install-recommends xvfb ffmpeg fonts-liberation fonts-noto-color-emoji fonts-noto-cjk ca-certificates \
  && node node_modules/playwright-core/cli.js install --with-deps chromium \
@@ -17,8 +23,7 @@ RUN npm ci --omit=dev \
  && mkdir -p /data && chown node:node /data
 
 COPY bin ./bin
-COPY src ./src
-COPY public ./public
+COPY --from=build /app/dist ./dist
 
 USER node
 VOLUME /data

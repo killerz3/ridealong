@@ -1,0 +1,10 @@
+{
+  "name": "tabkennel",
+  "short_name": "tabkennel",
+  "description": "One logged-in browser for you and your agents",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d0d10",
+  "theme_color": "#0d0d10",
+  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}

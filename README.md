@@ -2,7 +2,7 @@
 
 **One logged-in browser for you and your AI agents.** tabkennel runs real Chrome on your server. You open it from any browser or your phone, sign in to your sites once, and your agents use that same logged-in Chrome over CDP. Each agent only sees the tabs it opened.
 
-![The tabkennel viewer: your tab, plus tabs opened by two agents, grouped in the sidebar](docs/viewer.png)
+![The tabkennel viewer: your tab, two agents' tabs grouped in the sidebar, and the live activity feed](docs/viewer.png)
 
 - **Your logins, shared safely.** Sign in once (Gmail, GitHub, LinkedIn, your internal tools). Agents work as you, each in its own tabs. They can't see or touch your tabs or each other's.
 - **You can step in.** When an agent hits a captcha, 2FA prompt or "is this you?" page, you open the viewer and answer it.
@@ -10,6 +10,9 @@
 - **No RAM when idle.** A workspace nobody is using goes to sleep after 10 minutes (configurable): its Chrome is stopped and its tabs are saved. The next person or agent to connect wakes it in about 2 seconds, and agents get their tabs back.
 - **Fast on slow links.** The viewer only sends a new frame once the previous one has arrived. It never builds a backlog, so what you see stays current. An optional H.264 video mode gives smooth scrolling.
 - **Works on a phone.** Your tabs render at your screen's size, sites get a mobile browser, and you get touch scrolling and an on-screen keyboard.
+- **See what your agents are doing.** A live activity feed shows each agent connecting, opening tabs and browsing. An overview shows every tab as a live thumbnail. You can disconnect an agent, close its tabs, or block it.
+- **Files both ways.** When a page asks for a file, you pick it on your device and it's handed to the page. Anything the browser downloads, yours or an agent's, can be saved to your device.
+- **Fast to get around.** <kbd>Ctrl</kbd>/<kbd>⌘</kbd> <kbd>K</kbd> jumps to any tab or workspace, opens an address or runs a command. Light and dark themes.
 - **No root needed.** It's a Node process plus Xvfb. Run it as a normal user under systemd, or in Docker.
 
 ## Quick start
@@ -38,7 +41,11 @@ Both ports are published on `127.0.0.1` only. Profiles live in the `tabkennel-da
 
 ## Connect an agent
 
-Click **Connect an agent** in the viewer, or run `tabkennel connect <agent-name>`. You get ready-to-paste snippets like these:
+Click **Connect an agent** in the viewer, or run `tabkennel connect <agent-name>`. The viewer gives you ready-to-paste setup for Claude Code, Codex, any MCP client, Playwright and Puppeteer, and tells you the moment your agent connects.
+
+![Connect an agent: snippets per client and a live connection check](docs/connect.png)
+
+The snippets look like this:
 
 ```sh
 # Claude Code (or any MCP client) via Chrome DevTools MCP
@@ -79,11 +86,21 @@ tabkennel wake work
 
 ## The viewer
 
+![Overview: every tab in the workspace as a live thumbnail, labelled by agent](docs/overview.png)
+
+- **Sidebar.** Switch workspaces from the top; each shows whether it's awake and how much memory it uses. Below are your tabs, then one group per agent with a dot that's lit while it's connected. The ⋯ next to an agent closes its tabs, disconnects it or blocks it.
+- **Overview** shows every tab as a thumbnail that refreshes while you look. Filter by agent, click one to take it over.
+- **Activity** is a live feed of what agents do in this workspace: connections, new tabs, every page they go to, downloads.
+- **Search** (<kbd>Ctrl</kbd>/<kbd>⌘</kbd> <kbd>K</kbd>) finds tabs by title, address or agent, switches workspaces, and runs anything in the menus. Type an address to open it.
+- **Watching an agent's tab** draws a ring in its colour around the page. You can still click and type; the agent keeps its tab.
+- **Uploads and downloads.** A file input on the page opens a picker on your device. Downloads appear under the download button in the toolbar.
+- **Screenshot** (⋯ menu) saves the current page as a PNG.
+
 - **Images** mode (the default) streams JPEG frames only when the page changes. Pacing and quality adapt to your connection, and it works in every browser.
 - **Video** mode streams H.264 from the workspace's display, decoded in your browser with WebCodecs. Scrolling and animation are smoother, but the server uses more CPU while you watch. It needs `ffmpeg` on the server and https or localhost in the browser.
 - Tabs you open render at the size of your viewer. Agents' tabs keep their own size, so watching an agent doesn't change what it sees.
 - Copy (Ctrl/Cmd+C) copies the page's selection to your clipboard. Paste types your clipboard into the page. JS alerts and confirms appear as dialogs you can answer.
-- The numbers in the toolbar show the round trip, frames per second and bandwidth.
+- The dot and number in the toolbar show the round trip. Click it for frames per second, bandwidth and the Images/Video switch.
 
 On a 4 Mbit/s link with 30 ms latency, streaming a busy animated page, the picture was **56 ms old at the median (p95 101 ms)**. A viewer that acknowledges frames as soon as the server sends them (tabkennel's predecessor did this) fell **8 to 12 seconds** behind on the same link.
 
@@ -159,10 +176,17 @@ Data lives in `~/.tabkennel` (or `TABKENNEL_HOME`), with one folder per workspac
 
 ## Development
 
+tabkennel is TypeScript throughout: a Node server (`server/`), the CLI (`cli/`), a React app (`web/`, Vite, Tailwind and shadcn/ui), and the viewer protocol both sides share (`shared/protocol.ts`).
+
 ```sh
-git clone https://github.com/killerz3/tabkennel && cd tabkennel && npm install
-npm test        # end-to-end: real Chrome, puppeteer agents, viewer protocol (~2.5 min)
-node bin/tabkennel.js start
+git clone https://github.com/killerz3/tabkennel && cd tabkennel
+npm install          # also builds dist/
+npm start            # run the built server
+npm run dev          # the UI with hot reload, proxied to a running tabkennel on :8083
+npm run typecheck
+npm test             # end-to-end: real Chrome, puppeteer agents, viewer protocol (~3 min)
 ```
+
+The production build is plain static files served by the tabkennel process, so the UI adds no server-side memory.
 
 MIT licensed.
