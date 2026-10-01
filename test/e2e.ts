@@ -106,6 +106,12 @@ test('an agent connecting to a new workspace creates and wakes it', async () => 
   assert.equal(await aliceTab.title(), 'alice-page');
 });
 
+test('pages do not see an automated browser (Google refuses sign-in if they do)', async () => {
+  const p = await alice.newPage();
+  assert.equal(await p.evaluate(() => navigator.webdriver), false);
+  await p.close();
+});
+
 test('agents only see their own tabs', async () => {
   bob = await agent('work', 'bob');
   const bobPages = await bob.pages();

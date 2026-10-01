@@ -147,7 +147,11 @@ async function start({ profile, cfg, sandbox }: { profile: string; cfg: Config; 
     // agents' tabs sit in unfocused windows; keep them rendering at full speed
     '--disable-background-timer-throttling', '--disable-backgrounding-occluded-windows', '--disable-renderer-backgrounding',
     '--disable-features=CalculateNativeWinOcclusion,Translate,MediaRouter',
-    ...(sandbox ? [] : ['--no-sandbox', '--test-type']), // --test-type hides the "unsupported flag" bar
+    // the debugging port sets navigator.webdriver, and sites like Google then
+    // refuse to sign you in ("This browser or app may not be secure")
+    '--disable-blink-features=AutomationControlled',
+    '--test-type', // hides the "unsupported command-line flag" bar
+    ...(sandbox ? [] : ['--no-sandbox']),
     ...(smallShm() ? ['--disable-dev-shm-usage'] : []),
     ...cfg.chromeArgs,
   ];
