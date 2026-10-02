@@ -21,6 +21,11 @@ One logged-in Chrome for you and your AI agents: self-hosted, per-agent tabs, wo
   <img alt="MCP" src="https://img.shields.io/badge/works%20with-MCP%20%C2%B7%20Playwright%20%C2%B7%20Puppeteer-FFB224?labelColor=141416">
 </p>
 
+<p align="center">
+  <a href="https://github.com/killerz3/ridealong/releases/download/v0.3.0/ridealong-launch.mp4"><img src="docs/launch-loop.gif" width="760" alt="ridealong: agents connect, each gets its own tabs, and the activity feed shows what they do"></a><br>
+  <sub>▶ <a href="https://github.com/killerz3/ridealong/releases/download/v0.3.0/ridealong-launch.mp4">Watch the 42-second launch video</a></sub>
+</p>
+
 ridealong runs real Chrome on your server. You open it from any browser or your phone, sign in to your sites once, and your agents use that same logged-in Chrome over CDP. Each agent only sees the tabs it opened.
 
 ![The ridealong viewer: your tab, two agents' tabs grouped in the sidebar, and the live activity feed](docs/viewer.png)

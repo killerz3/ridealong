@@ -460,3 +460,9 @@ h1 {
 
 /* Grid children must be allowed to shrink below their nowrap content */
 .steps > *, .grid > *, .install > *, .split > *, .gallery > *, .security > * { min-width: 0; }
+
+/* Launch video: keep the whole 16:9 frame (captions sit at the top edge) */
+.frame video.media { aspect-ratio: 16 / 9; object-fit: contain; background: #0b0b0c; }
+.watch { margin: 18px 0 0; text-align: center; font-size: 14px; color: var(--muted); }
+.watch a { color: var(--text); text-decoration: underline; text-decoration-color: var(--border); text-underline-offset: 3px; }
+.watch a:hover { text-decoration-color: var(--accent); }
