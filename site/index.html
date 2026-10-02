@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ridealong: one logged-in browser for you and your AI agents</title>
+<meta name="description" content="ridealong runs real Chrome on your server. Sign in to your sites once and your agents use that same logged-in Chrome over CDP, each in its own tabs. Self-hosted, open source, MIT.">
+<meta name="theme-color" content="#0B0B0C">
+<meta name="color-scheme" content="dark">
+<link rel="canonical" href="https://killerz3.github.io/ridealong/">
+<link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+<link rel="icon" href="assets/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="preload" href="assets/fonts/geist-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ridealong">
+<meta property="og:title" content="ridealong: your agents ride along in your browser">
+<meta property="og:description" content="One logged-in Chrome for you and your AI agents. Self-hosted, per-agent tabs, workspaces that sleep when idle.">
+<meta property="og:url" content="https://killerz3.github.io/ridealong/">
+<meta property="og:image" content="https://killerz3.github.io/ridealong/assets/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ridealong: Your agents ride along in your browser.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="ridealong: your agents ride along in your browser">
+<meta name="twitter:description" content="One logged-in Chrome for you and your AI agents. Self-hosted, per-agent tabs, workspaces that sleep when idle.">
+<meta name="twitter:image" content="https://killerz3.github.io/ridealong/assets/og.png">
+<meta name="twitter:creator" content="@killerz3">
+
+<link rel="stylesheet" href="style.css">
+<script>document.documentElement.classList.add('js')</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="nav" id="top">
+  <div class="wrap nav-inner">
+    <a class="brand" href="#top" aria-label="ridealong home">
+      <img src="assets/logo.svg" alt="" width="26" height="26">
+      <span>ridealong</span>
+    </a>
+    <nav aria-label="Primary">
+      <ul class="nav-links">
+        <li><a href="#how">How it works</a></li>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#connect">Connect</a></li>
+        <li><a href="#install">Install</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ul>
+    </nav>
+    <a class="btn btn-ghost btn-sm gh" href="https://github.com/killerz3/ridealong" aria-label="ridealong on GitHub">
+      <svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      <span class="gh-label">GitHub</span>
+      <span class="stars" data-stars hidden></span>
+    </a>
+  </div>
+</header>
+
+<main id="main">
+
+<!-- ============ HERO ============ -->
+<section class="hero" aria-labelledby="hero-title">
+  <div class="hero-bg" aria-hidden="true"></div>
+  <div class="wrap hero-copy">
+    <p class="eyebrow reveal">
+      <img src="assets/logo.svg" alt="" width="18" height="18">
+      <span class="wordmark">ridealong</span>
+      <span class="sep" aria-hidden="true"></span>
+      <span>Open source · self-hosted · MIT</span>
+    </p>
+    <h1 id="hero-title" class="reveal">Your agents ride along<br class="br-lg"> in your browser.</h1>
+    <p class="lede reveal">One logged-in Chrome on your server for you and your AI agents. Sign in to your sites once. Agents work as you, each in its own tabs, and you step in when they hit a captcha.</p>
+    <div class="cta reveal">
+      <a class="btn btn-primary" href="#install">Get started
+        <svg aria-hidden="true" viewBox="0 0 16 16" width="14" height="14"><path d="M3 8h10M9 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+      <a class="btn btn-ghost" href="https://github.com/killerz3/ridealong">
+        <svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16"><path fill="currentColor" d="M8 .25a.75.75 0 01.67.42l1.88 3.81 4.2.61a.75.75 0 01.42 1.28l-3.04 2.96.72 4.19a.75.75 0 01-1.09.79L8 12.33l-3.76 1.98a.75.75 0 01-1.09-.79l.72-4.19L.83 6.37a.75.75 0 01.42-1.28l4.2-.61L7.33.67A.75.75 0 018 .25z"/></svg>
+        Star on GitHub
+        <span class="stars" data-stars hidden></span>
+      </a>
+    </div>
+    <p class="hero-cmd reveal"><code><span class="prompt">$</span> ridealong setup</code></p>
+  </div>
+
+  <div class="wrap stage-wrap">
+    <div class="stage" id="stage">
+      <div class="glow" aria-hidden="true"></div>
+      <figure class="frame">
+        <!--
+          LAUNCH VIDEO SLOT
+          Drop assets/launch.mp4 and assets/poster.png into site/assets/.
+          script.js checks that launch.mp4 exists and only then loads it and
+          swaps out the screenshot below. Until then the screenshot shows.
+        -->
+        <video id="launch" class="media" muted loop playsinline preload="none"
+               data-src="assets/launch.mp4" data-poster="assets/poster.png"
+               width="1920" height="1200" aria-label="ridealong launch video" hidden></video>
+        <img id="launch-fallback" class="media" src="assets/viewer.webp" width="1920" height="1200"
+             alt="The ridealong viewer: your tab, two agents' tabs grouped in the sidebar, and the live activity feed"
+             fetchpriority="high" decoding="async">
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ============ HOW IT WORKS ============ -->
+<section class="section" id="how" aria-labelledby="how-title">
+  <div class="wrap">
+    <header class="sec-head reveal">
+      <p class="kicker">How it works</p>
+      <h2 id="how-title">Three steps. Then it stays out of the way.</h2>
+    </header>
+    <ol class="steps">
+      <li class="step reveal">
+        <span class="step-n">01</span>
+        <h3>Sign in once</h3>
+        <p>Open the viewer from any browser or your phone. Log in to Gmail, GitHub, LinkedIn, your internal tools. The sessions live in a real Chrome on your server.</p>
+        <code class="step-code">http://127.0.0.1:8083</code>
+      </li>
+      <li class="step reveal">
+        <span class="step-n">02</span>
+        <h3>Connect your agents</h3>
+        <p>Point Claude Code, Codex, any MCP client, Playwright or Puppeteer at the agent port. Each agent works as you, but only sees the tabs it opened.</p>
+        <code class="step-code">ws://127.0.0.1:9230/<span class="t-teal">default</span>/<span class="t-green">research-bot</span></code>
+      </li>
+      <li class="step reveal">
+        <span class="step-n">03</span>
+        <h3>Step in when needed</h3>
+        <p>Captcha, 2FA prompt, "is this you?" page. Open the viewer, answer it, and the agent carries on in the same tab.</p>
+        <code class="step-code"><span class="dot dot-amber" aria-hidden="true"></span>you are watching research-bot</code>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<!-- ============ FEATURES ============ -->
+<section class="section" id="features" aria-labelledby="features-title">
+  <div class="wrap">
+    <header class="sec-head reveal">
+      <p class="kicker">Features</p>
+      <h2 id="features-title">A shared browser that knows who opened what.</h2>
+    </header>
+    <ul class="grid">
+      <li class="card reveal">
+        <svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3 9h18M8 5v4"/></svg>
+        <h3>Per-agent tabs</h3>
+        <p>Sign in once. Agents work as you, each in its own tabs. They can't see or touch your tabs or each other's.</p>
+      </li>
+      <li class="card reveal">
+        <svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 8.5-7 10-4-1.5-7-5.5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg>
+        <h3>You can step in</h3>
+        <p>When an agent hits a captcha, 2FA prompt or "is this you?" page, you open the viewer and answer it.</p>
+      </li>
+      <li class="card reveal">
+        <svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z"/></svg>
+        <h3>Workspaces that sleep</h3>
+        <p>Separate profiles like <code>personal</code> and <code>work</code>. Idle ones stop Chrome after 10 minutes and use no RAM, then wake in about 2 seconds with tabs restored.</p>
+      </li>
+      <li class="card reveal">
+        <svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M13 3L5 14h6l-1 7 8-11h-6l1-7z"/></svg>
+        <h3>Fast on slow links</h3>
+        <p>A new frame is sent only once the last one arrived, so there is never a backlog. 56 ms median picture age on a 4 Mbit/s link. Optional H.264 video mode.</p>
+      </li>
+      <li class="card reveal">
+        <svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg>
+        <h3>Works on a phone</h3>
+        <p>Tabs render at your screen's size, sites get a mobile browser, and you get touch scrolling and an on-screen keyboard.</p>
+      </li>
+      <li class="card reveal">
+        <svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg>
+        <h3>Activity feed</h3>
+        <p>Watch each agent connect, open tabs and browse. An overview shows every tab as a live thumbnail. Disconnect, close or block any agent.</p>
+      </li>
+      <li class="card reveal">
+        <svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+        <h3>Files both ways</h3>
+        <p>When a page asks for a file, pick it on your device. Anything the browser downloads, yours or an agent's, can be saved to your device.</p>
+      </li>
+      <li class="card reveal">
+        <svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
+        <h3><kbd>Ctrl</kbd> <kbd>K</kbd> to anywhere</h3>
+        <p>Jump to any tab or workspace, open an address or run a command. Light and dark themes.</p>
+      </li>
+      <li class="card reveal">
+        <svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9l3 3-3 3M13 15h3"/></svg>
+        <h3>No root needed</h3>
+        <p>A Node process plus Xvfb. Run it as a normal user under systemd, or in Docker.</p>
+      </li>
+    </ul>
+
+    <div class="gallery">
+      <figure class="shot reveal">
+        <div class="shot-img"><img src="assets/overview.webp" width="1440" height="900" loading="lazy" decoding="async" alt="Overview: every tab in the workspace as a live thumbnail, labelled by agent"></div>
+        <figcaption><strong>Overview.</strong> Every tab as a live thumbnail, labelled by agent.</figcaption>
+      </figure>
+      <figure class="shot reveal">
+        <div class="shot-img"><img src="assets/palette.webp" width="1440" height="900" loading="lazy" decoding="async" alt="The Ctrl+K palette searching tabs across agents"></div>
+        <figcaption><strong>Ctrl K.</strong> Find tabs by title, address or agent.</figcaption>
+      </figure>
+      <figure class="shot shot-phone reveal">
+        <div class="shot-img"><img src="assets/phone.webp" width="600" height="1298" loading="lazy" decoding="async" alt="ridealong on a phone, showing a mobile Wikipedia page"></div>
+        <figcaption><strong>Phone.</strong> Mobile pages, touch scrolling.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CONNECT ============ -->
+<section class="section" id="connect" aria-labelledby="connect-title">
+  <div class="wrap split">
+    <header class="sec-head reveal">
+      <p class="kicker">Connect an agent</p>
+      <h2 id="connect-title">Anything that speaks CDP.</h2>
+      <p>Click <strong>Connect an agent</strong> in the viewer, or run <code>ridealong connect &lt;agent-name&gt;</code>. You get ready-to-paste setup and a live check that tells you the moment your agent connects.</p>
+    </header>
+
+    <dl class="anatomy reveal">
+      <div><dt><code class="t-green">&lt;agent&gt;</code></dt><dd>Any name you choose. It labels the agent's tabs and scopes what it can see.</dd></div>
+      <div><dt><code class="t-teal">&lt;workspace&gt;</code></dt><dd>Which profile, and so which logins, the agent uses. Created if missing, woken if asleep.</dd></div>
+    </dl>
+
+    <div class="code-card reveal" data-tabs>
+      <div class="tabs" role="tablist" aria-label="Agent client">
+        <button role="tab" id="t-claude" aria-controls="p-claude" aria-selected="true">Claude Code</button>
+        <button role="tab" id="t-mcp" aria-controls="p-mcp" aria-selected="false" tabindex="-1">MCP</button>
+        <button role="tab" id="t-pw" aria-controls="p-pw" aria-selected="false" tabindex="-1">Playwright</button>
+        <button role="tab" id="t-pp" aria-controls="p-pp" aria-selected="false" tabindex="-1">Puppeteer</button>
+      </div>
+      <div class="panel" role="tabpanel" id="p-claude" aria-labelledby="t-claude" tabindex="0">
+<button class="copy" type="button" aria-label="Copy Claude Code command">Copy</button>
+<pre><code><span class="c"># Claude Code (or any MCP client) via Chrome DevTools MCP</span>
+claude mcp add browser -- npx -y chrome-devtools-mcp@latest \
+  --wsEndpoint <span class="s">ws://127.0.0.1:9230/default/research-bot/devtools/browser</span></code></pre>
+      </div>
+      <div class="panel" role="tabpanel" id="p-mcp" aria-labelledby="t-mcp" tabindex="0" hidden>
+<button class="copy" type="button" aria-label="Copy MCP server command">Copy</button>
+<pre><code><span class="c"># Any MCP client: run Chrome DevTools MCP against your agent's endpoint</span>
+npx -y chrome-devtools-mcp@latest \
+  --wsEndpoint <span class="s">ws://127.0.0.1:9230/default/research-bot/devtools/browser</span></code></pre>
+      </div>
+      <div class="panel" role="tabpanel" id="p-pw" aria-labelledby="t-pw" tabindex="0" hidden>
+<button class="copy" type="button" aria-label="Copy Playwright snippet">Copy</button>
+<pre><code><span class="c">// Playwright</span>
+<span class="k">const</span> browser = <span class="k">await</span> chromium.connectOverCDP(<span class="s">'http://127.0.0.1:9230/default/research-bot'</span>);</code></pre>
+      </div>
+      <div class="panel" role="tabpanel" id="p-pp" aria-labelledby="t-pp" tabindex="0" hidden>
+<button class="copy" type="button" aria-label="Copy Puppeteer snippet">Copy</button>
+<pre><code><span class="c">// Puppeteer</span>
+<span class="k">const</span> browser = <span class="k">await</span> puppeteer.connect({ browserWSEndpoint: <span class="s">'ws://127.0.0.1:9230/default/research-bot/devtools/browser'</span> });</code></pre>
+      </div>
+      <p class="endpoint"><span class="muted">Endpoint</span> <code>ws://127.0.0.1:9230/<span class="t-teal">&lt;workspace&gt;</span>/<span class="t-green">&lt;agent&gt;</span>/devtools/browser</code></p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ INSTALL ============ -->
+<section class="section" id="install" aria-labelledby="install-title">
+  <div class="wrap">
+    <header class="sec-head center reveal">
+      <p class="kicker">Install</p>
+      <h2 id="install-title">Self-host in one command.</h2>
+      <p>On a Linux server or VM with Node 20+, or anywhere Docker runs.</p>
+    </header>
+    <div class="install">
+      <article class="code-card reveal">
+        <div class="card-head"><h3>npm</h3><span class="tag">recommended</span></div>
+        <div class="panel">
+<button class="copy" type="button" aria-label="Copy npm install commands">Copy</button>
+<pre><code>sudo apt-get install -y xvfb ffmpeg      <span class="c"># ffmpeg is optional (video mode)</span>
+npm install -g https://github.com/killerz3/ridealong/releases/latest/download/ridealong.tgz
+ridealong setup</code></pre>
+        </div>
+        <p class="note"><code>setup</code> checks your system, downloads Chromium if needed (about 170 MB, no root), sets a viewer password and offers to install a systemd user service.</p>
+      </article>
+      <article class="code-card reveal">
+        <div class="card-head"><h3>Docker</h3></div>
+        <div class="panel">
+<button class="copy" type="button" aria-label="Copy Docker commands">Copy</button>
+<pre><code>git clone https://github.com/killerz3/ridealong &amp;&amp; cd ridealong
+echo <span class="s">"RIDEALONG_PASSWORD=$(openssl rand -base64 18)"</span> &gt; .env
+docker compose up -d</code></pre>
+        </div>
+        <p class="note">Both ports are published on <code>127.0.0.1</code> only. Profiles live in the <code>ridealong-data</code> volume.</p>
+      </article>
+    </div>
+    <p class="after reveal">Then open <code>http://127.0.0.1:8083</code> and sign in.<br>On a remote server, tunnel with <code>ssh -L 8083:127.0.0.1:8083 your-server</code> or put the viewer behind Cloudflare Tunnel or Caddy.</p>
+  </div>
+</section>
+
+<!-- ============ SECURITY ============ -->
+<section class="section" id="security" aria-labelledby="security-title">
+  <div class="wrap">
+    <div class="security reveal">
+      <div class="sec-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 8.5-7 10-4-1.5-7-5.5-7-10V6l7-3z"/><path d="M12 8v5M12 16h.01"/></svg>
+      </div>
+      <div>
+        <h2 id="security-title">The honest security note</h2>
+        <ul>
+          <li>The <strong>viewer</strong> is password protected with an HttpOnly, SameSite=Strict session and same-origin websockets. Put Cloudflare Access or your VPN in front of it anyway.</li>
+          <li>The <strong>agent port has no authentication</strong>. It listens on localhost; agents run on the same machine or reach it over an SSH tunnel. Treat it like a password manager that is already unlocked, and never expose port 9230.</li>
+          <li>Tab isolation stops agents tripping over each other. It is <strong>not</strong> a security boundary: every agent is logged in as you everywhere. Only connect agents you trust.</li>
+          <li>Where Chrome's sandbox can't run (root, containers, some Ubuntu setups), Chrome runs with <code>--no-sandbox</code>.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FAQ ============ -->
+<section class="section" id="faq" aria-labelledby="faq-title">
+  <div class="wrap narrow">
+    <header class="sec-head center reveal">
+      <p class="kicker">FAQ</p>
+      <h2 id="faq-title">Questions</h2>
+    </header>
+    <div class="faq">
+      <details class="reveal">
+        <summary>Which agents work with it?</summary>
+        <p>Anything that speaks the Chrome DevTools Protocol. The viewer has ready-made setup for Claude Code, Codex, any MCP client (via Chrome DevTools MCP), Playwright and Puppeteer.</p>
+      </details>
+      <details class="reveal">
+        <summary>What happens when a workspace goes to sleep?</summary>
+        <p>After 10 idle minutes (configurable per workspace, or never) Chrome saves its session and exits, so the workspace uses no memory. It wakes in about 2 seconds when you select it or an agent connects, and agents get their tabs back. Chrome DevTools MCP reconnects on the next tool call.</p>
+      </details>
+      <details class="reveal">
+        <summary>Can my agents see my tabs, or each other's?</summary>
+        <p>No. The agent proxy records which agent created which tab and hides every other tab from that agent. Popups inherit their opener's owner. This keeps agents from tripping over each other, but it is not a security boundary: only connect agents you trust.</p>
+      </details>
+      <details class="reveal">
+        <summary>Can I reach it from outside my server?</summary>
+        <p>Expose only the viewer port (8083), for example through Cloudflare Tunnel with Access, or Caddy for automatic HTTPS. Never expose the agent port (9230): anything that can reach it is signed in as you everywhere.</p>
+      </details>
+      <details class="reveal">
+        <summary>Was this called tabkennel?</summary>
+        <p>Yes. ridealong is the new name for tabkennel. Same project, same author, MIT licensed.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<section class="section final" aria-labelledby="final-title">
+  <div class="wrap center reveal">
+    <img src="assets/logo.svg" alt="" width="48" height="48" class="final-logo">
+    <h2 id="final-title">Give your agents a seat.</h2>
+    <div class="cta">
+      <a class="btn btn-primary" href="#install">Get started</a>
+      <a class="btn btn-ghost" href="https://github.com/killerz3/ridealong">View on GitHub</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap foot">
+    <a class="brand" href="#top"><img src="assets/logo.svg" alt="" width="20" height="20"><span>ridealong</span></a>
+    <p>MIT licensed · <a href="https://github.com/killerz3/ridealong">GitHub</a> · made by <a href="https://github.com/killerz3">@killerz3</a></p>
+  </div>
+</footer>
+
+<script src="script.js" defer></script>
+</body>
+</html>
