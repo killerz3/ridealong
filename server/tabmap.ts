@@ -53,6 +53,11 @@ export class TabMap extends EventEmitter {
       switch (msg.method) {
         case 'Target.attachedToTarget': {
           const t: TargetInfo = p.targetInfo;
+          // Chrome holds a window.open popup paused until every auto-attached
+          // client lets it run, even when it reports waitingForDebugger: false.
+          // Without this, "Continue with Google" on X hangs on a blank popup
+          // and the opener shows "Debugger paused in another tab".
+          send('Runtime.runIfWaitingForDebugger', {}, p.sessionId);
           if (t.type === 'tab' && !msg.sessionId) {
             tabSessions.set(p.sessionId, t.targetId);
             this.seen.set(t.targetId, Date.now());

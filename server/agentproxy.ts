@@ -125,7 +125,8 @@ function proxy(client: WebSocket, w: Workspace, bot: string) {
         if (v !== 'yes') {
           // auto-attach grabbed someone else's tab: let it run, detach
           log('hide', info!.type, info!.targetId);
-          if (p.waitingForDebugger) upSend({ id: ownId--, sessionId: p.sessionId, method: 'Runtime.runIfWaitingForDebugger' });
+          // always: popups can be held even when waitingForDebugger is false
+          upSend({ id: ownId--, sessionId: p.sessionId, method: 'Runtime.runIfWaitingForDebugger' });
           upSend({ id: ownId--, method: 'Target.detachFromTarget', params: { sessionId: p.sessionId }, ...(msg.sessionId && { sessionId: msg.sessionId }) });
           return true;
         }

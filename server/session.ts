@@ -167,6 +167,9 @@ export class ViewerSession {
     switch (msg.method) {
       case 'Target.targetCreated': case 'Target.targetInfoChanged':
         if (p.targetInfo.type === 'page') {
+          // follow a popup opened by the tab you're looking at (sign-in windows)
+          if (msg.method === 'Target.targetCreated' && p.targetInfo.openerId && p.targetInfo.openerId === this.current
+            && this.mine() && !this.targets.has(p.targetInfo.targetId)) setTimeout(() => this.view(p.targetInfo.targetId), 0);
           this.targets.set(p.targetInfo.targetId, p.targetInfo);
           this.sendTabsSoon();
           if (p.targetInfo.targetId === this.current) this.sendPageSoon();

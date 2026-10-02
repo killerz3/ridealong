@@ -11,9 +11,19 @@ export const which = (bin: string): string | null => {
   try { return execFileSync('sh', ['-c', `command -v ${bin}`]).toString().trim() || null; } catch { return null; }
 };
 
-// Playwright's Chromium first (predictable, no snap confinement), then system browsers.
+// Real Google Chrome first: Google sign-in, X and LinkedIn distrust Chrome
+// for Testing (Playwright's build) and show it an "automated testing" bar.
+// A user-level install (deb unpacked to ~/.local/opt) needs no root.
+// Then Playwright's Chromium (predictable, no snap confinement), then other system browsers.
 export function findChrome(configured?: string | null): string | null {
   if (configured) return fs.existsSync(configured) ? configured : null;
+  for (const bin of ['google-chrome-stable', 'google-chrome']) {
+    const p = which(bin);
+    if (p) return p;
+  }
+  for (const bin of ['/opt/google/chrome/chrome', path.join(os.homedir(), '.local', 'opt', 'google-chrome', 'chrome')]) {
+    if (fs.existsSync(bin)) return bin;
+  }
   const roots = [process.env.PLAYWRIGHT_BROWSERS_PATH, path.join(os.homedir(), '.cache', 'ms-playwright')].filter(Boolean) as string[];
   for (const root of roots) {
     let dirs: string[] = [];
@@ -24,7 +34,7 @@ export function findChrome(configured?: string | null): string | null {
       if (fs.existsSync(bin)) return bin;
     }
   }
-  for (const bin of ['google-chrome-stable', 'google-chrome', 'chromium', 'chromium-browser']) {
+  for (const bin of ['chromium', 'chromium-browser']) {
     const p = which(bin);
     if (p && !p.startsWith('/snap/')) return p;
   }
