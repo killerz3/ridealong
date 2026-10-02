@@ -96,7 +96,7 @@ export function Stage({ focusAddress }: { focusAddress: () => void }) {
 
   let cover: React.ReactNode = null;
   if (link !== 'open') {
-    cover = <Cover><WifiOff className="mb-4 size-6 text-muted-foreground" /><h2 className="text-base font-medium">Reconnecting…</h2><p className="mt-1.5 text-sm text-muted-foreground">Lost the connection to tabkennel. Trying again.</p></Cover>;
+    cover = <Cover><WifiOff className="mb-4 size-6 text-muted-foreground" /><h2 className="text-base font-medium">Reconnecting…</h2><p className="mt-1.5 text-sm text-muted-foreground">Lost the connection to ridealong. Trying again.</p></Cover>;
   } else if (wsState === 'connecting' || wsState === 'waking') {
     cover = (
       <Cover>
@@ -122,7 +122,7 @@ export function Stage({ focusAddress }: { focusAddress: () => void }) {
         <div className="mb-5 grid size-12 place-items-center rounded-2xl border border-destructive/30 bg-destructive/10 text-destructive"><AlertTriangle className="size-5" /></div>
         <h2 className="text-lg font-semibold tracking-tight">“{ws}” couldn’t start</h2>
         <pre className="mt-3 max-h-40 w-full max-w-md overflow-auto whitespace-pre-wrap rounded-lg border bg-card p-3 text-left font-mono text-xs text-muted-foreground">{wsError || 'Unknown error'}</pre>
-        <p className="mt-3 text-xs text-muted-foreground">Run <code className="font-mono">tabkennel doctor</code> on the server to check what’s missing.</p>
+        <p className="mt-3 text-xs text-muted-foreground">Run <code className="font-mono">ridealong doctor</code> on the server to check what’s missing.</p>
         <Button className="mt-4" onClick={() => send({ t: 'wake' })}>Try again</Button>
       </Cover>
     );

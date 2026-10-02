@@ -45,7 +45,7 @@ function WorkspaceSwitcher() {
             <SidebarMenuButton size="lg" className="data-[state=open]:bg-sidebar-accent" aria-label="Switch workspace">
               <Logo state={current?.state} />
               <div className="grid min-w-0 flex-1 text-left leading-tight">
-                <span className="truncate text-[13px] font-semibold text-sidebar-accent-foreground">{ws || 'tabkennel'}</span>
+                <span className="truncate text-[13px] font-semibold text-sidebar-accent-foreground">{ws || 'ridealong'}</span>
                 <span className="truncate text-xs text-muted-foreground">{current ? workspaceStatus(current) : 'Connecting…'}</span>
               </div>
               <ChevronsUpDown className="ml-auto size-4 text-muted-foreground" />

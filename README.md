@@ -1,8 +1,8 @@
-# tabkennel
+# ridealong
 
-**One logged-in browser for you and your AI agents.** tabkennel runs real Chrome on your server. You open it from any browser or your phone, sign in to your sites once, and your agents use that same logged-in Chrome over CDP. Each agent only sees the tabs it opened.
+**One logged-in browser for you and your AI agents.** ridealong runs real Chrome on your server. You open it from any browser or your phone, sign in to your sites once, and your agents use that same logged-in Chrome over CDP. Each agent only sees the tabs it opened.
 
-![The tabkennel viewer: your tab, two agents' tabs grouped in the sidebar, and the live activity feed](docs/viewer.png)
+![The ridealong viewer: your tab, two agents' tabs grouped in the sidebar, and the live activity feed](docs/viewer.png)
 
 - **Your logins, shared safely.** Sign in once (Gmail, GitHub, LinkedIn, your internal tools). Agents work as you, each in its own tabs. They can't see or touch your tabs or each other's.
 - **You can step in.** When an agent hits a captcha, 2FA prompt or "is this you?" page, you open the viewer and answer it.
@@ -21,27 +21,27 @@ On a Linux server or VM with Node 20+:
 
 ```sh
 sudo apt-get install -y xvfb ffmpeg      # ffmpeg is optional (video mode)
-npm install -g https://github.com/killerz3/tabkennel/releases/latest/download/tabkennel.tgz
-tabkennel setup
+npm install -g https://github.com/killerz3/ridealong/releases/latest/download/ridealong.tgz
+ridealong setup
 ```
 
-`setup` checks your system and downloads Chromium if you don't have one (about 170 MB, no root). It then sets a viewer password and offers to install a systemd user service, so tabkennel keeps running in the background and starts on boot.
+`setup` checks your system and downloads Chromium if you don't have one (about 170 MB, no root). It then sets a viewer password and offers to install a systemd user service, so ridealong keeps running in the background and starts on boot.
 
 Open **http://127.0.0.1:8083** and sign in. On a remote server, use `ssh -L 8083:127.0.0.1:8083 your-server` or [put it behind a tunnel](#reach-it-from-anywhere).
 
 ### Docker
 
 ```sh
-git clone https://github.com/killerz3/tabkennel && cd tabkennel
-echo "TABKENNEL_PASSWORD=$(openssl rand -base64 18)" > .env
+git clone https://github.com/killerz3/ridealong && cd ridealong
+echo "RIDEALONG_PASSWORD=$(openssl rand -base64 18)" > .env
 docker compose up -d
 ```
 
-Both ports are published on `127.0.0.1` only. Profiles live in the `tabkennel-data` volume.
+Both ports are published on `127.0.0.1` only. Profiles live in the `ridealong-data` volume.
 
 ## Connect an agent
 
-Click **Connect an agent** in the viewer, or run `tabkennel connect <agent-name>`. The viewer gives you ready-to-paste setup for Claude Code, Codex, any MCP client, Playwright and Puppeteer, and tells you the moment your agent connects.
+Click **Connect an agent** in the viewer, or run `ridealong connect <agent-name>`. The viewer gives you ready-to-paste setup for Claude Code, Codex, any MCP client, Playwright and Puppeteer, and tells you the moment your agent connects.
 
 ![Connect an agent: snippets per client and a live connection check](docs/connect.png)
 
@@ -70,7 +70,7 @@ A long-running agent keeps working across sleeps. When its workspace goes to sle
 
 ## Workspaces and sleep
 
-<img src="docs/phone.png" alt="tabkennel on a phone" width="260" align="right">
+<img src="docs/phone.png" alt="ridealong on a phone" width="260" align="right">
 
 Each workspace is its own Chrome profile running in its own Chrome on its own virtual display. Logins, cookies and history never mix between them.
 
@@ -79,9 +79,9 @@ A workspace stays **awake** while you have it open in a visible viewer tab or an
 Change the timer for all workspaces with `idleMinutes` in the config. Change it for one workspace from the **⋯** menu in the viewer (2 minutes up to never). That menu also has **Put to sleep now** and **Delete workspace**.
 
 ```sh
-tabkennel status          # which workspaces are awake, who is connected
-tabkennel sleep work      # stop a workspace's browser now
-tabkennel wake work
+ridealong status          # which workspaces are awake, who is connected
+ridealong sleep work      # stop a workspace's browser now
+ridealong wake work
 ```
 
 ## The viewer
@@ -102,7 +102,7 @@ tabkennel wake work
 - Copy (Ctrl/Cmd+C) copies the page's selection to your clipboard. Paste types your clipboard into the page. JS alerts and confirms appear as dialogs you can answer.
 - The dot and number in the toolbar show the round trip. Click it for frames per second, bandwidth and the Images/Video switch.
 
-On a 4 Mbit/s link with 30 ms latency, streaming a busy animated page, the picture was **56 ms old at the median (p95 101 ms)**. A viewer that acknowledges frames as soon as the server sends them (tabkennel's predecessor did this) fell **8 to 12 seconds** behind on the same link.
+On a 4 Mbit/s link with 30 ms latency, streaming a busy animated page, the picture was **56 ms old at the median (p95 101 ms)**. A viewer that acknowledges frames as soon as the server sends them (ridealong's predecessor did this) fell **8 to 12 seconds** behind on the same link.
 
 ## Reach it from anywhere
 
@@ -130,29 +130,29 @@ Video mode and clipboard copy need HTTPS, which both of these provide.
 
 ## Configuration
 
-`tabkennel setup` writes `~/.tabkennel/config.json`. Environment variables override it.
+`ridealong setup` writes `~/.ridealong/config.json`. Environment variables override it.
 
 | Setting | Env var | Default | |
 |---|---|---|---|
-| `password` | `TABKENNEL_PASSWORD` | set by setup | viewer password |
-| `viewerPort` | `TABKENNEL_PORT` | `8083` | web viewer |
-| `agentPort` | `TABKENNEL_AGENT_PORT` | `9230` | CDP for agents |
-| `bind` | `TABKENNEL_BIND` | `127.0.0.1` | interface both ports listen on |
-| `idleMinutes` | `TABKENNEL_IDLE_MINUTES` | `10` | sleep after this long unused; `0` = never |
-| `screen` | `TABKENNEL_SCREEN` | `1920x1200` | virtual display per workspace (largest page size) |
-| `fps` | `TABKENNEL_FPS` | `30` | video mode frame rate |
-| `chrome` | `TABKENNEL_CHROME` | auto | path to Chrome/Chromium |
-| `sandbox` | `TABKENNEL_SANDBOX` | `auto` | Chrome's sandbox; auto turns it off where it can't run |
+| `password` | `RIDEALONG_PASSWORD` | set by setup | viewer password |
+| `viewerPort` | `RIDEALONG_PORT` | `8083` | web viewer |
+| `agentPort` | `RIDEALONG_AGENT_PORT` | `9230` | CDP for agents |
+| `bind` | `RIDEALONG_BIND` | `127.0.0.1` | interface both ports listen on |
+| `idleMinutes` | `RIDEALONG_IDLE_MINUTES` | `10` | sleep after this long unused; `0` = never |
+| `screen` | `RIDEALONG_SCREEN` | `1920x1200` | virtual display per workspace (largest page size) |
+| `fps` | `RIDEALONG_FPS` | `30` | video mode frame rate |
+| `chrome` | `RIDEALONG_CHROME` | auto | path to Chrome/Chromium |
+| `sandbox` | `RIDEALONG_SANDBOX` | `auto` | Chrome's sandbox; auto turns it off where it can't run |
 | `chromeArgs` | | `[]` | extra Chrome flags |
 
-Data lives in `~/.tabkennel` (or `TABKENNEL_HOME`), with one folder per workspace under `workspaces/`.
+Data lives in `~/.ridealong` (or `RIDEALONG_HOME`), with one folder per workspace under `workspaces/`.
 
 ## Security model
 
 - The viewer is protected by a password. The session cookie is HttpOnly and SameSite=Strict, and websocket connections must come from the same origin. Put an identity layer such as Cloudflare Access or your VPN in front of it anyway.
 - The agent port has **no authentication**. It listens on localhost, and agents must run on the same machine (or reach it over an SSH tunnel). Treat it like a password manager that is already unlocked.
 - Tab isolation stops agents from tripping over each other. It is **not** a security boundary between agents: every agent is logged in as you everywhere, and CDP is powerful. Only connect agents you trust.
-- On hosts that can't run Chrome's sandbox (root, containers, Ubuntu 23.10+ with restricted user namespaces), tabkennel runs Chrome with `--no-sandbox`. That's one more reason to browse only where you'd browse anyway.
+- On hosts that can't run Chrome's sandbox (root, containers, Ubuntu 23.10+ with restricted user namespaces), ridealong runs Chrome with `--no-sandbox`. That's one more reason to browse only where you'd browse anyway.
 
 ## How it works
 
@@ -165,28 +165,28 @@ Data lives in `~/.tabkennel` (or `TABKENNEL_HOME`), with one folder per workspac
 
 - **Agent proxy.** It passes CDP through unchanged except for `Target.*` messages. That's where it records which agent created which tab and hides every other tab from that agent's discovery, auto-attach and `getTargets`. Popups inherit their opener's owner. Before a workspace sleeps, agent tabs are remembered by URL and handed back to their agent when Chrome restores them, even after a crash.
 - **Viewer.** It attaches to the selected tab over CDP and streams frames over one websocket. In Images mode it acknowledges each frame to Chrome only after your browser has received it, keeping at most two in flight. Quality and size follow the measured round trip. Video mode captures the display with `ffmpeg -f x11grab`, encodes low-latency H.264 and sends one access unit per message. If you fall behind, it skips ahead to the next keyframe.
-- **Workspaces.** Each one gets Xvfb (`-displayfd`, so it needs no fixed display numbers) and Chrome with `--remote-debugging-port=0`, both started on demand. Stopping uses `Browser.close`, so the session is saved. If tabkennel itself crashes, the next start stops the leftover Chrome gracefully before launching a new one.
+- **Workspaces.** Each one gets Xvfb (`-displayfd`, so it needs no fixed display numbers) and Chrome with `--remote-debugging-port=0`, both started on demand. Stopping uses `Browser.close`, so the session is saved. If ridealong itself crashes, the next start stops the leftover Chrome gracefully before launching a new one.
 
 ## Troubleshooting
 
-- `tabkennel doctor` checks Xvfb, Chromium, ffmpeg and the password.
-- **A workspace won't start.** The error appears in the viewer and in `tabkennel status`. Common causes are a missing Xvfb or missing Chrome libraries. Run `node $(npm root -g)/tabkennel/node_modules/playwright-core/cli.js install-deps chromium` as root.
+- `ridealong doctor` checks Xvfb, Chromium, ffmpeg and the password.
+- **A workspace won't start.** The error appears in the viewer and in `ridealong status`. Common causes are a missing Xvfb or missing Chrome libraries. Run `node $(npm root -g)/ridealong/node_modules/playwright-core/cli.js install-deps chromium` as root.
 - **Blank boxes instead of characters.** Install fonts: `sudo apt-get install fonts-noto fonts-noto-cjk fonts-noto-color-emoji`.
 - **Sites ask you to verify yourself a lot.** Datacenter IPs look suspicious. Answer the prompts in the viewer, and pace your agents like a person.
 
 ## Development
 
-tabkennel is TypeScript throughout: a Node server (`server/`), the CLI (`cli/`), a React app (`web/`, Vite, Tailwind and shadcn/ui), and the viewer protocol both sides share (`shared/protocol.ts`).
+ridealong is TypeScript throughout: a Node server (`server/`), the CLI (`cli/`), a React app (`web/`, Vite, Tailwind and shadcn/ui), and the viewer protocol both sides share (`shared/protocol.ts`).
 
 ```sh
-git clone https://github.com/killerz3/tabkennel && cd tabkennel
+git clone https://github.com/killerz3/ridealong && cd ridealong
 npm install          # also builds dist/
 npm start            # run the built server
-npm run dev          # the UI with hot reload, proxied to a running tabkennel on :8083
+npm run dev          # the UI with hot reload, proxied to a running ridealong on :8083
 npm run typecheck
 npm test             # end-to-end: real Chrome, puppeteer agents, viewer protocol (~3 min)
 ```
 
-The production build is plain static files served by the tabkennel process, so the UI adds no server-side memory.
+The production build is plain static files served by the ridealong process, so the UI adds no server-side memory.
 
 MIT licensed.

@@ -10,7 +10,7 @@ import type { Manager, Workspace } from './workspaces.js';
 import type { CdpMsg, TabMap, TargetInfo } from './tabmap.js';
 import type { Owners } from './owners.js';
 
-const LOG = process.env.TABKENNEL_LOG;
+const LOG = process.env.RIDEALONG_LOG;
 const TAB_TYPES = new Set(['page', 'tab']);
 const HOLD_MS = 2000;
 const ROUTE = /^\/(?:([^/]+)\/)?([\w.-]+)\/(devtools\/browser|json(?:\/version|\/list)?)\/?(?:\?.*)?$/;
@@ -61,7 +61,7 @@ export function start({ port, bind, manager }: { port: number; bind: string; man
   wss.on('connection', (client, req) => {
     const r = resolve(manager, req.url);
     if (!r || r.what !== 'devtools/browser') return client.close(1008, 'use /<workspace>/<agent>/devtools/browser');
-    if (r.w.blocked.includes(r.bot)) return client.close(1008, `agent "${r.bot}" is blocked in the tabkennel viewer`);
+    if (r.w.blocked.includes(r.bot)) return client.close(1008, `agent "${r.bot}" is blocked in the ridealong viewer`);
     proxy(client, r.w, r.bot);
   });
 
@@ -194,7 +194,7 @@ function proxy(client: WebSocket, w: Workspace, bot: string) {
     const p = msg.params || {};
     const deny = (why: string) => {
       log('deny', msg.method, why);
-      toClient({ id: msg.id, sessionId: msg.sessionId, error: { code: -32000, message: `tabkennel: ${why}` } });
+      toClient({ id: msg.id, sessionId: msg.sessionId, error: { code: -32000, message: `ridealong: ${why}` } });
     };
     if (/^Target\.(attachToTarget|closeTarget|activateTarget|exposeDevToolsProtocol)$/.test(msg.method) && p.targetId) {
       const info = allTargets.get(p.targetId) || { targetId: p.targetId, type: 'page', url: '', title: '' };

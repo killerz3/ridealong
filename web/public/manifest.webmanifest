@@ -1,6 +1,6 @@
 {
-  "name": "tabkennel",
-  "short_name": "tabkennel",
+  "name": "ridealong",
+  "short_name": "ridealong",
   "description": "One logged-in browser for you and your agents",
   "start_url": "/",
   "display": "standalone",

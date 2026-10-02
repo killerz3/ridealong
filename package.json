@@ -1,10 +1,10 @@
 {
-  "name": "tabkennel",
-  "version": "0.2.1",
+  "name": "ridealong",
+  "version": "0.3.0",
   "description": "One logged-in browser for you and your AI agents: self-hosted Chrome with a web viewer, per-agent tab isolation and workspaces that sleep when idle.",
   "type": "module",
   "bin": {
-    "tabkennel": "bin/tabkennel.js"
+    "ridealong": "bin/ridealong.js"
   },
   "files": [
     "bin",
@@ -17,7 +17,7 @@
     "dev": "vite",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p web/tsconfig.json && tsc -p test/tsconfig.json",
     "prepare": "npm run build",
-    "start": "node bin/tabkennel.js start",
+    "start": "node bin/ridealong.js start",
     "test": "npm run build && tsx test/e2e.ts"
   },
   "engines": {
@@ -40,7 +40,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/killerz3/tabkennel.git"
+    "url": "git+https://github.com/killerz3/ridealong.git"
   },
   "license": "MIT",
   "dependencies": {

@@ -14,7 +14,7 @@ export async function favicon(pageUrl: string) {
   if (hit && Date.now() - hit.at < TTL) return hit.icon;
   let icon: { type: string; body: Buffer } | null = null;
   try {
-    const res = await fetch(origin + '/favicon.ico', { signal: AbortSignal.timeout(4000), redirect: 'follow', headers: { 'user-agent': 'Mozilla/5.0 tabkennel' } });
+    const res = await fetch(origin + '/favicon.ico', { signal: AbortSignal.timeout(4000), redirect: 'follow', headers: { 'user-agent': 'Mozilla/5.0 ridealong' } });
     const type = res.headers.get('content-type') || '';
     if (res.ok && /^image\//.test(type)) {
       const body = Buffer.from(await res.arrayBuffer());

@@ -1,4 +1,4 @@
-# tabkennel: one logged-in browser for you and your agents
+# ridealong: one logged-in browser for you and your agents
 FROM node:22-bookworm-slim AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
@@ -8,9 +8,9 @@ RUN npm run build
 
 FROM node:22-bookworm-slim
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
-    TABKENNEL_HOME=/data \
-    TABKENNEL_BIND=0.0.0.0 \
-    TABKENNEL_SANDBOX=false \
+    RIDEALONG_HOME=/data \
+    RIDEALONG_BIND=0.0.0.0 \
+    RIDEALONG_SANDBOX=false \
     NODE_ENV=production
 
 WORKDIR /app
@@ -29,4 +29,4 @@ USER node
 VOLUME /data
 EXPOSE 8083 9230
 HEALTHCHECK --interval=30s --timeout=5s CMD node -e "fetch('http://127.0.0.1:8083/healthz').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"
-CMD ["node", "bin/tabkennel.js", "start"]
+CMD ["node", "bin/ridealong.js", "start"]

@@ -24,7 +24,7 @@ const TYPES: Record<string, string> = {
 };
 
 export function start({ cfg, manager }: { cfg: Config; manager: Manager }): Promise<http.Server> {
-  const secret = crypto.createHash('sha256').update('tabkennel:' + cfg.password).digest('hex');
+  const secret = crypto.createHash('sha256').update('ridealong:' + cfg.password).digest('hex');
   const authed = (req: http.IncomingMessage) => (req.headers.cookie || '').split(/;\s*/).includes('tk=' + secret);
   const secure = (req: http.IncomingMessage) => req.headers['x-forwarded-proto'] === 'https' || /"https"/.test(String(req.headers['cf-visitor'] || ''));
   const sameOrigin = (req: http.IncomingMessage) => {

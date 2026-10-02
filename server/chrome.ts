@@ -93,7 +93,7 @@ export async function launch({ profile, cfg }: { profile: string; cfg: Config })
   }
 }
 
-// If tabkennel died without stopping its browsers (crash, kill -9), their
+// If ridealong died without stopping its browsers (crash, kill -9), their
 // Chrome and Xvfb are still running. Never start a second Chrome on the same
 // profile: find leftovers by profile path and by the pid file, and stop them.
 export async function killStale(profile: string, pidFile: string) {
@@ -129,7 +129,7 @@ const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
 async function start({ profile, cfg, sandbox }: { profile: string; cfg: Config; sandbox: boolean }): Promise<Chrome> {
   const bin = findChrome(cfg.chrome);
-  if (!bin) throw new Error('no Chrome found: run `tabkennel setup` or set "chrome" in config');
+  if (!bin) throw new Error('no Chrome found: run `ridealong setup` or set "chrome" in config');
   const [w, h] = cfg.screen.split('x').map(Number);
   const pidFile = path.join(path.dirname(profile), 'pids.json');
 

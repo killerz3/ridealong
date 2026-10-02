@@ -12,9 +12,9 @@ import puppeteer, { type Browser } from 'puppeteer-core';
 import type { ClientMsg, ServerMsg, WorkspaceInfo } from '../shared/protocol.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const home = fs.mkdtempSync(path.join(os.tmpdir(), 'tabkennel-test-'));
+const home = fs.mkdtempSync(path.join(os.tmpdir(), 'ridealong-test-'));
 const VP = 28000 + Math.floor(Math.random() * 1000), AP = VP + 1000;
-const env = { ...process.env, TABKENNEL_HOME: home, TABKENNEL_PASSWORD: 'pw', TABKENNEL_PORT: String(VP), TABKENNEL_AGENT_PORT: String(AP), TABKENNEL_IDLE_MINUTES: '0.1' };
+const env = { ...process.env, RIDEALONG_HOME: home, RIDEALONG_PASSWORD: 'pw', RIDEALONG_PORT: String(VP), RIDEALONG_AGENT_PORT: String(AP), RIDEALONG_IDLE_MINUTES: '0.1' };
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 const api = async (p: string, method = 'GET') => (await fetch(`http://127.0.0.1:${AP}${p}`, { method })).json();
 const ws = (name: string): Promise<WorkspaceInfo | undefined> => api('/api/workspaces').then((l: WorkspaceInfo[]) => l.find(w => w.name === name));
@@ -334,10 +334,10 @@ test('after a crash, restarting cleans up the old browser instead of doubling it
 });
 
 async function startServer() {
-  server = spawn(process.execPath, [path.join(ROOT, 'bin', 'tabkennel.js'), 'start'], { env, stdio: ['ignore', 'pipe', 'inherit'] });
+  server = spawn(process.execPath, [path.join(ROOT, 'bin', 'ridealong.js'), 'start'], { env, stdio: ['ignore', 'pipe', 'inherit'] });
   let log = '';
   server.stdout!.on('data', d => { log += d; if (process.env.VERBOSE) process.stdout.write(d); });
-  await until(() => log.includes('tabkennel is running'), 10000, 'server start');
+  await until(() => log.includes('ridealong is running'), 10000, 'server start');
 }
 
 await startServer();

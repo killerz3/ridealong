@@ -3,7 +3,17 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-export const HOME = process.env.TABKENNEL_HOME || path.join(os.homedir(), '.tabkennel');
+// ridealong was called tabkennel until v0.3: its env vars still work and its
+// data folder is moved over on first run.
+const env = (name: string) => process.env['RIDEALONG_' + name] ?? process.env['TABKENNEL_' + name];
+
+function defaultHome() {
+  const home = path.join(os.homedir(), '.ridealong'), old = path.join(os.homedir(), '.tabkennel');
+  if (!fs.existsSync(home) && fs.existsSync(old)) try { fs.renameSync(old, home); } catch {}
+  return home;
+}
+
+export const HOME = env('HOME') || defaultHome();
 export const FILE = path.join(HOME, 'config.json');
 
 export interface Config {
@@ -34,9 +44,8 @@ export const DEFAULTS: Omit<Config, 'home'> = {
 };
 
 const ENV: Partial<Record<keyof Config, string>> = {
-  password: 'TABKENNEL_PASSWORD', bind: 'TABKENNEL_BIND', viewerPort: 'TABKENNEL_PORT',
-  agentPort: 'TABKENNEL_AGENT_PORT', idleMinutes: 'TABKENNEL_IDLE_MINUTES', screen: 'TABKENNEL_SCREEN',
-  fps: 'TABKENNEL_FPS', chrome: 'TABKENNEL_CHROME', sandbox: 'TABKENNEL_SANDBOX',
+  password: 'PASSWORD', bind: 'BIND', viewerPort: 'PORT', agentPort: 'AGENT_PORT',
+  idleMinutes: 'IDLE_MINUTES', screen: 'SCREEN', fps: 'FPS', chrome: 'CHROME', sandbox: 'SANDBOX',
 };
 
 function readFile(): Partial<Config> {
@@ -45,7 +54,7 @@ function readFile(): Partial<Config> {
 
 export function load(): Config {
   const raw: Record<string, unknown> = { ...DEFAULTS, ...readFile(), home: HOME };
-  for (const [k, v] of Object.entries(ENV)) if (process.env[v] !== undefined && process.env[v] !== '') raw[k] = process.env[v];
+  for (const [k, v] of Object.entries(ENV)) { const val = env(v); if (val !== undefined && val !== '') raw[k] = val; }
   for (const k of ['viewerPort', 'agentPort', 'idleMinutes', 'fps']) raw[k] = Number(raw[k]);
   if (raw.sandbox === 'true' || raw.sandbox === 'false') raw.sandbox = raw.sandbox === 'true';
   const cfg = raw as unknown as Config;

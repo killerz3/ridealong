@@ -15,7 +15,7 @@ export function Login({ onDone }: { onDone: () => void }) {
       const r = await fetch('/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ password }) });
       if (r.ok) { history.replaceState(null, '', location.pathname + location.hash); return onDone(); }
       setError('That password didn’t work.');
-    } catch { setError('Can’t reach tabkennel. Is it running?'); }
+    } catch { setError('Can’t reach ridealong. Is it running?'); }
     setBusy(false);
   };
   return (
@@ -25,7 +25,7 @@ export function Login({ onDone }: { onDone: () => void }) {
         <div className="mb-8 flex items-center gap-3">
           <Logo className="size-10 [&_svg]:size-5 [&>span]:border-background" />
           <div>
-            <div className="text-lg font-semibold tracking-tight">tabkennel</div>
+            <div className="text-lg font-semibold tracking-tight">ridealong</div>
             <div className="text-sm text-muted-foreground">One logged-in browser for you and your agents</div>
           </div>
         </div>
@@ -38,7 +38,7 @@ export function Login({ onDone }: { onDone: () => void }) {
             {busy ? <Loader2 className="animate-spin" /> : <>Sign in <ArrowRight /></>}
           </Button>
         </form>
-        <p className="mt-6 text-center text-xs text-muted-foreground">Forgot it? Run <code className="rounded bg-muted px-1 py-0.5 font-mono">tabkennel password</code> on the server.</p>
+        <p className="mt-6 text-center text-xs text-muted-foreground">Forgot it? Run <code className="rounded bg-muted px-1 py-0.5 font-mono">ridealong password</code> on the server.</p>
       </div>
     </main>
   );

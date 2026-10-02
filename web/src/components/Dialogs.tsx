@@ -90,7 +90,7 @@ export function ConnectDialog() {
           <AgentAvatar name={name} className="ml-auto" />
         </div>
         <p className="text-xs leading-relaxed text-muted-foreground">
-          Run these on the machine where tabkennel runs: the agent port ({port}) only listens locally, and anything that reaches it is signed in as you.
+          Run these on the machine where ridealong runs: the agent port ({port}) only listens locally, and anything that reaches it is signed in as you.
           Naming a workspace that doesn’t exist creates it.
         </p>
       </DialogContent>

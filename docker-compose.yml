@@ -1,19 +1,19 @@
-# docker compose up -d   (put TABKENNEL_PASSWORD=... in a .env file next to this)
+# docker compose up -d   (put RIDEALONG_PASSWORD=... in a .env file next to this)
 services:
-  tabkennel:
+  ridealong:
     build: .
     restart: unless-stopped
     init: true                # reaps Chrome's child processes
     shm_size: 1gb             # Chrome needs more shared memory than Docker's 64 MB default
     stop_grace_period: 30s    # time for browsers to save their tabs
     environment:
-      TABKENNEL_PASSWORD: ${TABKENNEL_PASSWORD:?set TABKENNEL_PASSWORD in .env}
-      TABKENNEL_IDLE_MINUTES: ${TABKENNEL_IDLE_MINUTES:-10}
+      RIDEALONG_PASSWORD: ${RIDEALONG_PASSWORD:?set RIDEALONG_PASSWORD in .env}
+      RIDEALONG_IDLE_MINUTES: ${RIDEALONG_IDLE_MINUTES:-10}
     ports:
       - "127.0.0.1:8083:8083"   # viewer: put a tunnel or reverse proxy in front for remote access
       - "127.0.0.1:9230:9230"   # agents: keep this on localhost, it is signed in as you
     volumes:
-      - tabkennel-data:/data
+      - ridealong-data:/data
 
 volumes:
-  tabkennel-data:
+  ridealong-data:

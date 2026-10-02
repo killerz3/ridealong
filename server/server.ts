@@ -4,12 +4,12 @@ import * as agentproxy from './agentproxy.js';
 import type { Config } from './config.js';
 
 export async function serve(cfg: Config) {
-  if (!cfg.password) throw new Error('no password set: run `tabkennel setup` or set TABKENNEL_PASSWORD');
+  if (!cfg.password) throw new Error('no password set: run `ridealong setup` or set RIDEALONG_PASSWORD');
   const manager = new Manager(cfg);
   await manager.ready;
   const listen = async <T>(what: string, port: number, fn: () => Promise<T>) => {
     try { return await fn(); } catch (e) {
-      if ((e as NodeJS.ErrnoException).code === 'EADDRINUSE') throw new Error(`port ${port} (${what}) is already in use. Is tabkennel already running? Try \`tabkennel status\`.`);
+      if ((e as NodeJS.ErrnoException).code === 'EADDRINUSE') throw new Error(`port ${port} (${what}) is already in use. Is ridealong already running? Try \`ridealong status\`.`);
       throw e;
     }
   };
@@ -17,7 +17,7 @@ export async function serve(cfg: Config) {
   await listen('agents', cfg.agentPort, () => agentproxy.start({ port: cfg.agentPort, bind: cfg.bind, manager }));
 
   const host = cfg.bind === '0.0.0.0' ? '127.0.0.1' : cfg.bind;
-  console.log(`tabkennel is running
+  console.log(`ridealong is running
   viewer  http://${host}:${cfg.viewerPort}
   agents  ws://${host}:${cfg.agentPort}/<workspace>/<agent>/devtools/browser
   data    ${cfg.home}

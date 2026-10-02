@@ -1,4 +1,4 @@
-// tabkennel command line: setup, run, and connect agents.
+// ridealong command line: setup, run, and connect agents.
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -15,7 +15,7 @@ import { VERSION } from '../server/version.js';
 import type { WorkspaceInfo } from '../shared/protocol.js';
 
 const require = createRequire(import.meta.url);
-const BIN = fileURLToPath(new URL('../../bin/tabkennel.js', import.meta.url));
+const BIN = fileURLToPath(new URL('../../bin/ridealong.js', import.meta.url));
 
 const argv = process.argv.slice(2);
 const flag = (name: string) => { const i = argv.indexOf(name); return i >= 0 ? (argv.splice(i, 1), true) : false; };
@@ -32,19 +32,19 @@ const ok = (s: string) => console.log(`  ${c.g('✓')} ${s}`);
 const bad = (s: string) => console.log(`  ${c.r('✗')} ${s}`);
 const warn = (s: string) => console.log(`  ${c.y('!')} ${s}`);
 
-const HELP = `${c.b('tabkennel')} ${VERSION}: one logged-in browser for you and your agents
+const HELP = `${c.b('ridealong')} ${VERSION}: one logged-in browser for you and your agents
 
 ${c.b('Usage')}
-  tabkennel setup              guided first-time setup (browser, password, background service)
-  tabkennel start              run in the foreground
-  tabkennel connect <agent>    print how to plug an agent in   [-w workspace]
-  tabkennel status             workspaces and whether they're awake
-  tabkennel wake|sleep <ws>    start or stop a workspace's browser now
-  tabkennel doctor             check that everything tabkennel needs is installed
-  tabkennel password           change the viewer password
+  ridealong setup              guided first-time setup (browser, password, background service)
+  ridealong start              run in the foreground
+  ridealong connect <agent>    print how to plug an agent in   [-w workspace]
+  ridealong status             workspaces and whether they're awake
+  ridealong wake|sleep <ws>    start or stop a workspace's browser now
+  ridealong doctor             check that everything ridealong needs is installed
+  ridealong password           change the viewer password
 
 Settings live in ${config.FILE}
-(env vars TABKENNEL_PASSWORD, TABKENNEL_PORT, TABKENNEL_AGENT_PORT, TABKENNEL_IDLE_MINUTES, … override it)`;
+(env vars RIDEALONG_PASSWORD, RIDEALONG_PORT, RIDEALONG_AGENT_PORT, RIDEALONG_IDLE_MINUTES, … override it)`;
 
 function ask(q: string, { hidden = false, def = '' } = {}): Promise<string> {
   return new Promise(resolve => {
@@ -80,11 +80,11 @@ const FFMPEG = { apt: 'ffmpeg', dnf: 'ffmpeg', pacman: 'ffmpeg' };
 function report(cfg: Config) {
   const r = checks(cfg);
   r.xvfb ? ok('Xvfb (virtual display)') : bad(`Xvfb is missing: ${installHint(XVFB)}`);
-  r.chrome ? ok(`Chromium: ${r.chrome}`) : bad('no Chromium yet: `tabkennel setup` downloads one');
+  r.chrome ? ok(`Chromium: ${r.chrome}`) : bad('no Chromium yet: `ridealong setup` downloads one');
   if (!r.ffmpeg) warn(`ffmpeg is missing, so video mode is off (optional): ${installHint(FFMPEG)}`);
   else if (!r.video) warn('ffmpeg has no libx264/x11grab, so video mode is off (optional)');
   else ok('ffmpeg with H.264 (video mode available)');
-  cfg.password ? ok('viewer password is set') : bad('no viewer password: run `tabkennel setup` or `tabkennel password`');
+  cfg.password ? ok('viewer password is set') : bad('no viewer password: run `ridealong setup` or `ridealong password`');
   return r;
 }
 
@@ -94,10 +94,10 @@ function installChromium() {
   return r.status === 0;
 }
 
-const unitPath = path.join(os.homedir(), '.config', 'systemd', 'user', 'tabkennel.service');
+const unitPath = path.join(os.homedir(), '.config', 'systemd', 'user', 'ridealong.service');
 function installService() {
   const unit = `[Unit]
-Description=tabkennel: shared browser for you and your agents
+Description=ridealong: shared browser for you and your agents
 After=network.target
 
 [Service]
@@ -114,7 +114,7 @@ WantedBy=default.target
   fs.writeFileSync(unitPath, unit);
   const sc = (...a: string[]) => spawnSync('systemctl', ['--user', ...a], { encoding: 'utf8' });
   sc('daemon-reload');
-  const r = sc('enable', '--now', 'tabkennel');
+  const r = sc('enable', '--now', 'ridealong');
   if (r.status !== 0) { bad(`systemctl failed: ${(r.stderr || '').trim()}`); return false; }
   ok(`background service installed (${unitPath})`);
   const linger = spawnSync('loginctl', ['show-user', os.userInfo().username, '-p', 'Linger'], { encoding: 'utf8' }).stdout || '';
@@ -144,11 +144,11 @@ Give each agent its own name; use -w to pick a workspace.`)}`;
 
 async function setup() {
   let cfg = config.load();
-  console.log(`\n${c.b('tabkennel setup')}  ${c.d(config.HOME)}\n`);
+  console.log(`\n${c.b('ridealong setup')}  ${c.d(config.HOME)}\n`);
   let r = report(cfg);
   console.log();
   if (!r.chrome) {
-    if (await yes('Download Chromium for tabkennel now (~170 MB, no root needed)?')) {
+    if (await yes('Download Chromium for ridealong now (~170 MB, no root needed)?')) {
       if (!installChromium()) { bad('Chromium download failed; see above'); process.exit(1); }
       ok(`Chromium: ${findChrome()}`);
     }
@@ -162,14 +162,14 @@ async function setup() {
     cfg = config.load();
   }
   if (!r.xvfb) {
-    bad(`tabkennel needs Xvfb: ${installHint(XVFB)}, then run setup again`);
+    bad(`ridealong needs Xvfb: ${installHint(XVFB)}, then run setup again`);
     process.exit(1);
   }
   console.log();
   const hasSystemd = spawnSync('systemctl', ['--user', 'is-system-running'], { encoding: 'utf8' }).status !== null && which('systemctl');
   let running = false;
-  if (hasSystemd && await yes('Run tabkennel in the background and start it on boot (systemd user service)?')) running = installService();
-  console.log(`\n${c.b('Done.')} ${running ? '' : 'Start it with ' + c.b('tabkennel start') + '.'}
+  if (hasSystemd && await yes('Run ridealong in the background and start it on boot (systemd user service)?')) running = installService();
+  console.log(`\n${c.b('Done.')} ${running ? '' : 'Start it with ' + c.b('ridealong start') + '.'}
 
   Open the viewer: ${c.b(`http://127.0.0.1:${cfg.viewerPort}`)}
   ${c.d(`On a remote server: ssh -L ${cfg.viewerPort}:127.0.0.1:${cfg.viewerPort} <server>, or put it behind a tunnel (see README).`)}
@@ -195,8 +195,8 @@ ${connectText(cfg)}
     }
     case 'status': {
       let list: WorkspaceInfo[];
-      try { list = await api(cfg, '/api/workspaces'); } catch { bad(`tabkennel is not running (nothing on port ${cfg.agentPort})`); process.exit(1); }
-      console.log(`${c.b('tabkennel')} viewer http://127.0.0.1:${cfg.viewerPort}\n`);
+      try { list = await api(cfg, '/api/workspaces'); } catch { bad(`ridealong is not running (nothing on port ${cfg.agentPort})`); process.exit(1); }
+      console.log(`${c.b('ridealong')} viewer http://127.0.0.1:${cfg.viewerPort}\n`);
       for (const w of list) {
         const dot = w.state === 'awake' ? c.g('●') : w.state === 'asleep' ? c.d('○') : c.y('◐');
         const extra = [w.agents.length && `agents: ${w.agents.map(a => a.name).join(', ')}`, w.viewers && `${w.viewers} viewer(s)`, w.memoryMB && `${w.memoryMB} MB`,
@@ -206,15 +206,15 @@ ${connectText(cfg)}
       return;
     }
     case 'wake': case 'sleep': {
-      if (!argv[0]) { bad(`usage: tabkennel ${cmd} <workspace>`); process.exit(1); }
-      try { const w = await api(cfg, `/api/workspaces/${argv[0]}/${cmd}`, 'POST'); w.error ? bad(w.error) : ok(`${w.name} is ${w.state}`); } catch { bad('tabkennel is not running'); process.exit(1); }
+      if (!argv[0]) { bad(`usage: ridealong ${cmd} <workspace>`); process.exit(1); }
+      try { const w = await api(cfg, `/api/workspaces/${argv[0]}/${cmd}`, 'POST'); w.error ? bad(w.error) : ok(`${w.name} is ${w.state}`); } catch { bad('ridealong is not running'); process.exit(1); }
       return;
     }
     case 'password': {
       const p = argv[0] || await ask('New viewer password: ', { hidden: true });
       if (!p) process.exit(1);
       config.save({ password: p });
-      ok('saved; restart tabkennel to apply (systemctl --user restart tabkennel)');
+      ok('saved; restart ridealong to apply (systemctl --user restart ridealong)');
       return;
     }
     case '-v': case '--version': return console.log(VERSION);
