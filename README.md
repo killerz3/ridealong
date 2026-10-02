@@ -8,7 +8,7 @@
 One logged-in Chrome for you and your AI agents: self-hosted, per-agent tabs, workspaces that sleep when idle.</p>
 
 <p align="center">
-  <a href="https://killerz3.github.io/ridealong/">Website</a> ·
+  <a href="https://ridealong.kz3.dev/">Website</a> ·
   <a href="#quick-start">Quick start</a> ·
   <a href="#connect-an-agent">Connect an agent</a> ·
   <a href="#security-model">Security</a>
