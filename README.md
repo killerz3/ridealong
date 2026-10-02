@@ -1,6 +1,27 @@
-# ridealong
+<p align="center">
+  <img src="brand/logo.svg" width="88" alt="">
+</p>
 
-**One logged-in browser for you and your AI agents.** ridealong runs real Chrome on your server. You open it from any browser or your phone, sign in to your sites once, and your agents use that same logged-in Chrome over CDP. Each agent only sees the tabs it opened.
+<h1 align="center">ridealong</h1>
+
+<p align="center"><b>Your agents ride along in your browser.</b><br>
+One logged-in Chrome for you and your AI agents: self-hosted, per-agent tabs, workspaces that sleep when idle.</p>
+
+<p align="center">
+  <a href="https://killerz3.github.io/ridealong/">Website</a> ·
+  <a href="#quick-start">Quick start</a> ·
+  <a href="#connect-an-agent">Connect an agent</a> ·
+  <a href="#security-model">Security</a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/killerz3/ridealong/releases/latest"><img alt="release" src="https://img.shields.io/github/v/release/killerz3/ridealong?color=FFB224&labelColor=141416"></a>
+  <a href="LICENSE"><img alt="MIT" src="https://img.shields.io/badge/license-MIT-FFB224?labelColor=141416"></a>
+  <img alt="Linux" src="https://img.shields.io/badge/runs%20on-Linux-FFB224?labelColor=141416">
+  <img alt="MCP" src="https://img.shields.io/badge/works%20with-MCP%20%C2%B7%20Playwright%20%C2%B7%20Puppeteer-FFB224?labelColor=141416">
+</p>
+
+ridealong runs real Chrome on your server. You open it from any browser or your phone, sign in to your sites once, and your agents use that same logged-in Chrome over CDP. Each agent only sees the tabs it opened.
 
 ![The ridealong viewer: your tab, two agents' tabs grouped in the sidebar, and the live activity feed](docs/viewer.png)
 
@@ -173,6 +194,10 @@ Data lives in `~/.ridealong` (or `RIDEALONG_HOME`), with one folder per workspac
 - **A workspace won't start.** The error appears in the viewer and in `ridealong status`. Common causes are a missing Xvfb or missing Chrome libraries. Run `node $(npm root -g)/ridealong/node_modules/playwright-core/cli.js install-deps chromium` as root.
 - **Blank boxes instead of characters.** Install fonts: `sudo apt-get install fonts-noto fonts-noto-cjk fonts-noto-color-emoji`.
 - **Sites ask you to verify yourself a lot.** Datacenter IPs look suspicious. Answer the prompts in the viewer, and pace your agents like a person.
+
+## Formerly tabkennel
+
+ridealong was called tabkennel until v0.3.0. Upgrading keeps everything: `~/.tabkennel` is moved to `~/.ridealong` on first start and `TABKENNEL_*` environment variables still work. If you installed the systemd service, rerun `ridealong setup` to install `ridealong.service`, then `systemctl --user disable --now tabkennel`.
 
 ## Development
 
