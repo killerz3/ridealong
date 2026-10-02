@@ -1,6 +1,6 @@
 {
   "name": "ridealong",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "One logged-in browser for you and your AI agents: self-hosted Chrome with a web viewer, per-agent tab isolation and workspaces that sleep when idle.",
   "type": "module",
   "bin": {
