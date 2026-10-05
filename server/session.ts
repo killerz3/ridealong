@@ -349,10 +349,15 @@ export class ViewerSession {
     }
   }
 
-  private async startVideo() {
+  private async startVideo(): Promise<void> {
     const targetId = this.current, w = this.w;
     const chrome = w?.chrome;
     if (!targetId || !chrome) return;
+    if (!chrome.display) {
+      this.mode = 'jpeg';
+      this.out({ t: 'mode', mode: 'jpeg', msg: 'Video mode needs a virtual display, and this browser runs headless' });
+      return this.startStream();
+    }
     // put the tab's window at the top-left of the display, on top, so its page
     // can be captured; your own tabs are also sized to your viewer
     const measure = () => this.onPage('Runtime.evaluate', {
