@@ -43,7 +43,13 @@ ridealong runs real Chrome on your server. You open it from any browser or your 
 
 ## Quick start
 
-On a Linux server or VM with Node 20+:
+**Let your agent do it.** Paste this into Claude Code, Codex or any coding agent on the machine:
+
+```text
+Using https://raw.githubusercontent.com/killerz3/ridealong/main/AGENT.md, install and set up ridealong.
+```
+
+Or install it yourself. On a Linux server or VM with Node 20+:
 
 ```sh
 sudo apt-get install -y xvfb ffmpeg      # ffmpeg is optional (video mode)
@@ -57,7 +63,15 @@ Open **http://127.0.0.1:8083** and sign in. On a remote server, use `ssh -L 8083
 
 ### macOS
 
-With Node 20+ and Google Chrome installed:
+With [Homebrew](https://brew.sh):
+
+```sh
+brew install killerz3/tap/ridealong
+ridealong setup
+brew services start ridealong
+```
+
+Or with Node 20+:
 
 ```sh
 npm install -g https://github.com/killerz3/ridealong/releases/latest/download/ridealong.tgz

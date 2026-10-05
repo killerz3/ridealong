@@ -4,12 +4,15 @@ class Ridealong < Formula
   desc "One logged-in browser for you and your AI agents"
   homepage "https://ridealong.kz3.dev/"
   url "https://github.com/killerz3/ridealong/releases/download/v0.4.0/ridealong.tgz"
-  sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+  sha256 "b4a27116d8d44d0161f23a43cd09149757be8cc6875dcd5099e8977210e6ac2f"
   license "MIT"
 
   depends_on "node"
 
   def install
+    # The release tarball ships a prebuilt dist/. Drop `prepare` (tsc + vite build),
+    # which npm would otherwise run on pack/install without the dev dependencies.
+    inreplace "package.json", /^\s*"prepare": .*\n/, ""
     system "npm", "install", *std_npm_args
     bin.install_symlink libexec.glob("bin/*")
   end
