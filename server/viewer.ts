@@ -12,6 +12,7 @@ import type { Manager } from './workspaces.js';
 import { ViewerSession } from './session.js';
 import { Uploads } from './uploads.js';
 import { videoSupported } from './video.js';
+import { headless } from './chrome.js';
 import { favicon } from './favicon.js';
 import { VERSION } from './version.js';
 import type { Boot } from '../shared/protocol.js';
@@ -78,7 +79,7 @@ export function start({ cfg, manager }: { cfg: Config; manager: Manager }): Prom
       if (p === '/logout') return send(res, 303, 'text/plain', '', { location: '/', 'set-cookie': 'tk=; Path=/; Max-Age=0' });
       if (p === '/healthz') return send(res, 200, 'text/plain', 'ok');
       if (p === '/api/boot') {
-        const boot: Boot = { authed: authed(req), version: VERSION, agentPort: cfg.agentPort, idleMinutes: cfg.idleMinutes, video: videoSupported() };
+        const boot: Boot = { authed: authed(req), version: VERSION, agentPort: cfg.agentPort, idleMinutes: cfg.idleMinutes, video: !headless(cfg) && videoSupported() };
         return json(res, boot);
       }
       if (p.startsWith('/api/')) {

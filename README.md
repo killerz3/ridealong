@@ -17,7 +17,7 @@ One logged-in Chrome for you and your AI agents: self-hosted, per-agent tabs, wo
 <p align="center">
   <a href="https://github.com/killerz3/ridealong/releases/latest"><img alt="release" src="https://img.shields.io/github/v/release/killerz3/ridealong?color=FFB224&labelColor=141416"></a>
   <a href="LICENSE"><img alt="MIT" src="https://img.shields.io/badge/license-MIT-FFB224?labelColor=141416"></a>
-  <img alt="Linux" src="https://img.shields.io/badge/runs%20on-Linux-FFB224?labelColor=141416">
+  <img alt="Linux and macOS" src="https://img.shields.io/badge/runs%20on-Linux%20%C2%B7%20macOS-FFB224?labelColor=141416">
   <img alt="MCP" src="https://img.shields.io/badge/works%20with-MCP%20%C2%B7%20Playwright%20%C2%B7%20Puppeteer-FFB224?labelColor=141416">
 </p>
 
@@ -39,7 +39,7 @@ ridealong runs real Chrome on your server. You open it from any browser or your 
 - **See what your agents are doing.** A live activity feed shows each agent connecting, opening tabs and browsing. An overview shows every tab as a live thumbnail. You can disconnect an agent, close its tabs, or block it.
 - **Files both ways.** When a page asks for a file, you pick it on your device and it's handed to the page. Anything the browser downloads, yours or an agent's, can be saved to your device.
 - **Fast to get around.** <kbd>Ctrl</kbd>/<kbd>⌘</kbd> <kbd>K</kbd> jumps to any tab or workspace, opens an address or runs a command. Light and dark themes.
-- **No root needed.** It's a Node process plus Xvfb. Run it as a normal user under systemd, or in Docker.
+- **No root needed.** It's a Node process plus Xvfb. Run it as a normal user under systemd, or in Docker. It also runs on a Mac, headless, with no Xvfb at all.
 
 ## Quick start
 
@@ -54,6 +54,23 @@ ridealong setup
 `setup` checks your system and downloads Chromium if you don't have one (about 170 MB, no root). It then sets a viewer password and offers to install a systemd user service, so ridealong keeps running in the background and starts on boot.
 
 Open **http://127.0.0.1:8083** and sign in. On a remote server, use `ssh -L 8083:127.0.0.1:8083 your-server` or [put it behind a tunnel](#reach-it-from-anywhere).
+
+### macOS
+
+With Node 20+ and Google Chrome installed:
+
+```sh
+npm install -g https://github.com/killerz3/ridealong/releases/latest/download/ridealong.tgz
+ridealong setup
+```
+
+`setup` finds Chrome in `/Applications` (or downloads Chromium), sets the viewer password and offers to install a launchd agent, so ridealong runs in the background and starts when you log in.
+
+On a Mac, each workspace's Chrome runs **headless**, because macOS has no Xvfb. Everything works the same except:
+
+- **No video mode.** The viewer uses Images mode, which is the default anyway.
+- **Memory figures are RSS**, so they read higher than on Linux.
+- Headless Chrome presents itself as normal Chrome, but a few sites may still spot it. If one won't let you sign in, sign in from the viewer and let your agents reuse the session.
 
 ### Docker
 
@@ -169,6 +186,7 @@ Video mode and clipboard copy need HTTPS, which both of these provide.
 | `fps` | `RIDEALONG_FPS` | `30` | video mode frame rate |
 | `chrome` | `RIDEALONG_CHROME` | auto | path to Chrome/Chromium |
 | `sandbox` | `RIDEALONG_SANDBOX` | `auto` | Chrome's sandbox; auto turns it off where it can't run |
+| `headless` | `RIDEALONG_HEADLESS` | `auto` | headless Chrome, no Xvfb or video mode; auto is on for macOS, off on Linux |
 | `chromeArgs` | | `[]` | extra Chrome flags |
 
 Data lives in `~/.ridealong` (or `RIDEALONG_HOME`), with one folder per workspace under `workspaces/`.
@@ -178,6 +196,7 @@ Data lives in `~/.ridealong` (or `RIDEALONG_HOME`), with one folder per workspac
 - The viewer is protected by a password. The session cookie is HttpOnly and SameSite=Strict, and websocket connections must come from the same origin. Put an identity layer such as Cloudflare Access or your VPN in front of it anyway.
 - The agent port has **no authentication**. It listens on localhost, and agents must run on the same machine (or reach it over an SSH tunnel). Treat it like a password manager that is already unlocked.
 - Tab isolation stops agents from tripping over each other. It is **not** a security boundary between agents: every agent is logged in as you everywhere, and CDP is powerful. Only connect agents you trust.
+- Workspace profiles keep cookies under a fixed key (`--password-store=basic` on Linux, `--use-mock-keychain` on macOS) so Chrome never prompts for a keyring. Protect `~/.ridealong` like the logins it holds.
 - On hosts that can't run Chrome's sandbox (root, containers, Ubuntu 23.10+ with restricted user namespaces), ridealong runs Chrome with `--no-sandbox`. That's one more reason to browse only where you'd browse anyway.
 
 ## How it works
@@ -191,11 +210,12 @@ Data lives in `~/.ridealong` (or `RIDEALONG_HOME`), with one folder per workspac
 
 - **Agent proxy.** It passes CDP through unchanged except for `Target.*` messages. That's where it records which agent created which tab and hides every other tab from that agent's discovery, auto-attach and `getTargets`. Popups inherit their opener's owner. Before a workspace sleeps, agent tabs are remembered by URL and handed back to their agent when Chrome restores them, even after a crash.
 - **Viewer.** It attaches to the selected tab over CDP and streams frames over one websocket. In Images mode it acknowledges each frame to Chrome only after your browser has received it, keeping at most two in flight. Quality and size follow the measured round trip. Video mode captures the display with `ffmpeg -f x11grab`, encodes low-latency H.264 and sends one access unit per message. If you fall behind, it skips ahead to the next keyframe.
-- **Workspaces.** Each one gets Xvfb (`-displayfd`, so it needs no fixed display numbers) and Chrome with `--remote-debugging-port=0`, both started on demand. Stopping uses `Browser.close`, so the session is saved. If ridealong itself crashes, the next start stops the leftover Chrome gracefully before launching a new one.
+- **Workspaces.** Each one gets Xvfb (`-displayfd`, so it needs no fixed display numbers) and Chrome with `--remote-debugging-port=0`, both started on demand. In headless mode (macOS) there is no Xvfb: Chrome runs `--headless=new` with a normal desktop user agent. Stopping uses `Browser.close`, so the session is saved. If ridealong itself crashes, the next start stops the leftover Chrome gracefully before launching a new one.
 
 ## Troubleshooting
 
 - `ridealong doctor` checks Xvfb, Chromium, ffmpeg and the password.
+- **macOS: is it running?** `launchctl print gui/$(id -u)/dev.kz3.ridealong`; the log is `~/.ridealong/ridealong.log`.
 - **A workspace won't start.** The error appears in the viewer and in `ridealong status`. Common causes are a missing Xvfb or missing Chrome libraries. Run `node $(npm root -g)/ridealong/node_modules/playwright-core/cli.js install-deps chromium` as root.
 - **Blank boxes instead of characters.** Install fonts: `sudo apt-get install fonts-noto fonts-noto-cjk fonts-noto-color-emoji`.
 - **Sites ask you to verify yourself a lot.** Datacenter IPs look suspicious. Answer the prompts in the viewer, and pace your agents like a person.
@@ -215,6 +235,7 @@ npm start            # run the built server
 npm run dev          # the UI with hot reload, proxied to a running ridealong on :8083
 npm run typecheck
 npm test             # end-to-end: real Chrome, puppeteer agents, viewer protocol (~3 min)
+RIDEALONG_HEADLESS=true npm test   # the headless path macOS uses, on Linux
 ```
 
 The production build is plain static files served by the ridealong process, so the UI adds no server-side memory.

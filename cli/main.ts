@@ -9,7 +9,7 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import * as config from '../server/config.js';
 import type { Config } from '../server/config.js';
-import { findChrome, which } from '../server/chrome.js';
+import { findChrome, headless, which } from '../server/chrome.js';
 import { videoSupported } from '../server/video.js';
 import { VERSION } from '../server/version.js';
 import type { WorkspaceInfo } from '../shared/protocol.js';
@@ -64,9 +64,17 @@ async function api(cfg: Config, p: string, method = 'GET') {
   return res.json();
 }
 
+const mac = process.platform === 'darwin';
+
+// headless Chrome needs no virtual display, and video mode needs one
 function checks(cfg: Config) {
-  return { xvfb: which('Xvfb'), chrome: findChrome(cfg.chrome), ffmpeg: which('ffmpeg'), video: videoSupported() };
+  const display = !headless(cfg);
+  return {
+    display, xvfb: display ? which('Xvfb') : null, chrome: findChrome(cfg.chrome),
+    ffmpeg: display ? which('ffmpeg') : null, video: display && videoSupported(),
+  };
 }
+const ready = (r: ReturnType<typeof checks>) => (!r.display || !!r.xvfb) && !!r.chrome;
 
 const installHint = (pkgs: { apt: string; dnf: string; pacman: string }) => {
   if (which('apt-get')) return `sudo apt-get install -y ${pkgs.apt}`;
@@ -79,11 +87,14 @@ const FFMPEG = { apt: 'ffmpeg', dnf: 'ffmpeg', pacman: 'ffmpeg' };
 
 function report(cfg: Config) {
   const r = checks(cfg);
-  r.xvfb ? ok('Xvfb (virtual display)') : bad(`Xvfb is missing: ${installHint(XVFB)}`);
+  if (r.display) r.xvfb ? ok('Xvfb (virtual display)') : bad(`Xvfb is missing: ${installHint(XVFB)}`);
+  else ok(`Chrome runs headless${mac ? ' on macOS' : ''} (no virtual display; video mode is off)`);
   r.chrome ? ok(`Chromium: ${r.chrome}`) : bad('no Chromium yet: `ridealong setup` downloads one');
-  if (!r.ffmpeg) warn(`ffmpeg is missing, so video mode is off (optional): ${installHint(FFMPEG)}`);
-  else if (!r.video) warn('ffmpeg has no libx264/x11grab, so video mode is off (optional)');
-  else ok('ffmpeg with H.264 (video mode available)');
+  if (r.display) {
+    if (!r.ffmpeg) warn(`ffmpeg is missing, so video mode is off (optional): ${installHint(FFMPEG)}`);
+    else if (!r.video) warn('ffmpeg has no libx264/x11grab, so video mode is off (optional)');
+    else ok('ffmpeg with H.264 (video mode available)');
+  }
   cfg.password ? ok('viewer password is set') : bad('no viewer password: run `ridealong setup` or `ridealong password`');
   return r;
 }
@@ -121,6 +132,54 @@ WantedBy=default.target
   if (!/Linger=yes/.test(linger)) warn(`to keep it running after you log out: sudo loginctl enable-linger ${os.userInfo().username}`);
   return true;
 }
+
+const LABEL = 'dev.kz3.ridealong';
+const plistPath = path.join(os.homedir(), 'Library', 'LaunchAgents', `${LABEL}.plist`);
+const xml = (v: string) => v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+// a launchd agent: runs while you're logged in, starts at login, restarts if it crashes
+function installLaunchAgent() {
+  const log = path.join(config.HOME, 'ridealong.log');
+  // Homebrew's node lives at a versioned path that disappears on `brew upgrade node`
+  const node = (/\/Cellar\//.test(process.execPath) && which('node')) || process.execPath;
+  const plist = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>${LABEL}</string>
+  <key>ProgramArguments</key>
+  <array><string>${xml(node)}</string><string>${xml(BIN)}</string><string>start</string></array>
+  <key>EnvironmentVariables</key>
+  <dict><key>PATH</key><string>${xml(process.env.PATH || '/usr/bin:/bin')}</string></dict>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><dict><key>SuccessfulExit</key><false/></dict>
+  <key>ThrottleInterval</key><integer>3</integer>
+  <key>ExitTimeOut</key><integer>30</integer>
+  <key>StandardOutPath</key><string>${xml(log)}</string>
+  <key>StandardErrorPath</key><string>${xml(log)}</string>
+</dict>
+</plist>
+`;
+  fs.mkdirSync(path.dirname(plistPath), { recursive: true });
+  fs.mkdirSync(config.HOME, { recursive: true, mode: 0o700 });
+  fs.writeFileSync(plistPath, plist);
+  const domain = `gui/${process.getuid!()}`;
+  // bootstrap fails while a previous copy is still stopping, so wait for it to go
+  if (spawnSync('launchctl', ['bootout', `${domain}/${LABEL}`]).status === 0) {
+    for (let i = 0; i < 50 && spawnSync('launchctl', ['print', `${domain}/${LABEL}`]).status === 0; i++) spawnSync('sleep', ['0.1']);
+  }
+  const r = spawnSync('launchctl', ['bootstrap', domain, plistPath], { encoding: 'utf8' });
+  if (r.status !== 0) {
+    bad(`launchctl failed: ${(r.stderr || '').trim()}`);
+    warn('the background service needs you logged in to the Mac (not only over SSH); for now run `ridealong start`');
+    return false;
+  }
+  ok(`background service installed (${plistPath}, log in ${log})`);
+  return true;
+}
+
+const restartHint = () => mac
+  ? `launchctl kickstart -k gui/$(id -u)/${LABEL}  (or: brew services restart ridealong)`
+  : 'systemctl --user restart ridealong';
 
 function connectText(cfg: Config, agent = 'my-agent', ws = 'default') {
   const url = `ws://127.0.0.1:${cfg.agentPort}/${ws}/${agent}/devtools/browser`;
@@ -161,14 +220,20 @@ async function setup() {
     ok(custom ? 'password saved' : `generated password: ${c.b(password)}  ${c.d('(saved in config.json)')}`);
     cfg = config.load();
   }
-  if (!r.xvfb) {
+  if (r.display && !r.xvfb) {
     bad(`ridealong needs Xvfb: ${installHint(XVFB)}, then run setup again`);
     process.exit(1);
   }
   console.log();
-  const hasSystemd = spawnSync('systemctl', ['--user', 'is-system-running'], { encoding: 'utf8' }).status !== null && which('systemctl');
   let running = false;
-  if (hasSystemd && await yes('Run ridealong in the background and start it on boot (systemd user service)?')) running = installService();
+  if (mac) {
+    // Homebrew installs come with their own service; two would fight over the ports
+    if (/\/Cellar\//.test(fs.realpathSync(BIN))) console.log(`  Run it in the background and at login with: ${c.b('brew services start ridealong')}`);
+    else if (await yes('Run ridealong in the background and start it at login (launchd)?')) running = installLaunchAgent();
+  } else {
+    const hasSystemd = spawnSync('systemctl', ['--user', 'is-system-running'], { encoding: 'utf8' }).status !== null && which('systemctl');
+    if (hasSystemd && await yes('Run ridealong in the background and start it on boot (systemd user service)?')) running = installService();
+  }
   console.log(`\n${c.b('Done.')} ${running ? '' : 'Start it with ' + c.b('ridealong start') + '.'}
 
   Open the viewer: ${c.b(`http://127.0.0.1:${cfg.viewerPort}`)}
@@ -187,7 +252,7 @@ ${connectText(cfg)}
       try { await (await import('../server/server.js')).serve(cfg); } catch (e) { bad((e as Error).message); process.exit(1); }
       return;
     case 'setup': return setup();
-    case 'doctor': { const r = report(cfg); process.exit(r.xvfb && r.chrome && cfg.password ? 0 : 1); }
+    case 'doctor': { const r = report(cfg); process.exit(ready(r) && cfg.password ? 0 : 1); }
     case 'connect': {
       const ws = opt('--workspace', '-w') || 'default';
       console.log(connectText(cfg, argv[0] || 'my-agent', ws));
@@ -214,7 +279,7 @@ ${connectText(cfg)}
       const p = argv[0] || await ask('New viewer password: ', { hidden: true });
       if (!p) process.exit(1);
       config.save({ password: p });
-      ok('saved; restart ridealong to apply (systemctl --user restart ridealong)');
+      ok(`saved; restart ridealong to apply (${restartHint()})`);
       return;
     }
     case '-v': case '--version': return console.log(VERSION);

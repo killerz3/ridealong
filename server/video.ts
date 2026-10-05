@@ -20,8 +20,9 @@ function isKey(au: Buffer) {
 }
 
 let support: boolean | undefined;
-// ffmpeg with x11grab and libx264, checked once
+// ffmpeg with x11grab and libx264, checked once; x11grab only exists on Linux
 export function videoSupported() {
+  if (support === undefined && process.platform !== 'linux') support = false;
   if (support === undefined) {
     support = false;
     if (which('ffmpeg')) {

@@ -1,5 +1,5 @@
 // A workspace is its own Chrome profile (own logins) running in its own
-// Chrome + virtual display. It starts when someone needs it and is stopped
+// Chrome (on Linux, with its own virtual display). It starts when someone needs it and is stopped
 // after idleMinutes without a viewer or agent activity, so idle RAM is ~0.
 import fs from 'node:fs';
 import path from 'node:path';

@@ -1,11 +1,12 @@
 // End-to-end: real Chrome, real agents (puppeteer), real viewer socket.
 //   npm test
+//   RIDEALONG_HEADLESS=true npm test   (on Linux: the headless path macOS uses)
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import http from 'node:http';
 import assert from 'node:assert/strict';
-import { spawn, type ChildProcess } from 'node:child_process';
+import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import WebSocket from 'ws';
 import puppeteer, { type Browser } from 'puppeteer-core';
@@ -78,6 +79,7 @@ async function viewer(workspace: string, mode: 'jpeg' | 'video' = 'jpeg'): Promi
 }
 const awake = (v: Viewer) => until(() => v.last('state')?.state === 'awake', 15000, 'viewer awake');
 
+class Skip extends Error {}
 const tests: { name: string; fn: () => Promise<void> }[] = [];
 const test = (name: string, fn: () => Promise<void>) => tests.push({ name, fn });
 let server!: ChildProcess;
@@ -109,6 +111,7 @@ test('an agent connecting to a new workspace creates and wakes it', async () => 
 test('pages do not see an automated browser (Google refuses sign-in if they do)', async () => {
   const p = await alice.newPage();
   assert.equal(await p.evaluate(() => navigator.webdriver), false);
+  assert.doesNotMatch(await p.evaluate(() => navigator.userAgent), /Headless/);
   await p.close();
 });
 
@@ -151,6 +154,18 @@ test('viewer sees all tabs labelled by owner, and streams JPEG frames with backp
 });
 
 test('video mode streams H.264 starting with a keyframe', async () => {
+  const cookie = await login();
+  if (!(await (await fetch(`http://127.0.0.1:${VP}/api/boot`, { headers: { cookie } })).json()).video) {
+    // no video here (headless, macOS, or no ffmpeg): asking for it falls back to images
+    const v = await viewer('work', 'video');
+    await awake(v);
+    const at = (await until(() => v.last('tabs'), 5000, 'tabs')).tabs.find(t => t.owner === 'alice')!;
+    v.send({ t: 'view', id: at.id });
+    await until(() => v.frames.filter(f => f.type === 1).length > 3, 8000, 'JPEG frames after falling back');
+    assert.ok(!v.frames.some(f => f.type === 2 || f.type === 3), 'no video frames');
+    v.sock.close();
+    throw new Skip('video mode is not available here; checked the fallback to images');
+  }
   const v = await viewer('work', 'video');
   await awake(v);
   const at = (await until(() => v.last('tabs'), 5000, 'tabs')).tabs.find(t => t.owner === 'alice')!;
@@ -294,14 +309,18 @@ test('a viewer holding a workspace keeps it awake', async () => {
   v.sock.close();
 });
 
-const mainChromes = (profile: string) => fs.readdirSync('/proc').filter(d => /^\d+$/.test(d)).filter(pid => {
-  try {
-    const c = fs.readFileSync(`/proc/${pid}/cmdline`, 'utf8');
-    return /[\0 ]$|^$/.test(c.split(`--user-data-dir=${profile}`)[1]?.charAt(0) ?? 'x') && !c.includes('--type=');
-  } catch { return false; }
-});
+// macOS has no /proc
+const procfs = process.platform === 'linux';
+const ps = (...o: string[]) => (spawnSync('ps', ['-axww', '-o', o.join(',')], { encoding: 'utf8' }).stdout || '').split('\n').map(l => l.trim()).filter(Boolean);
+const cmdlines = () => procfs
+  ? fs.readdirSync('/proc').filter(d => /^\d+$/.test(d)).map(pid => { try { return fs.readFileSync(`/proc/${pid}/cmdline`, 'utf8'); } catch { return ''; } })
+  : ps('command=');
+const mainChromes = (profile: string) => cmdlines().filter(c =>
+  /[\0 ]$|^$/.test(c.split(`--user-data-dir=${profile}`)[1]?.charAt(0) ?? 'x') && !c.includes('--type='));
 
-const rssMB = () => +fs.readFileSync(`/proc/${server.pid}/status`, 'utf8').match(/VmRSS:\s+(\d+)/)![1] / 1024;
+const rssMB = () => procfs
+  ? +fs.readFileSync(`/proc/${server.pid}/status`, 'utf8').match(/VmRSS:\s+(\d+)/)![1] / 1024
+  : +(spawnSync('ps', ['-o', 'rss=', '-p', String(server.pid)], { encoding: 'utf8' }).stdout.trim()) / 1024;
 test('a viewer leaving while its tab closes does not leak', async () => {
   const a = await agent('leak', 'erin');
   const p = await a.newPage(); await p.goto(ANIM);
@@ -347,8 +366,11 @@ for (const t of tests) {
   if (only && !t.name.includes(only) && !/creates and wakes|own tabs/.test(t.name)) continue;
   const t0 = Date.now();
   try { await t.fn(); console.log(`  ✓ ${t.name} (${Date.now() - t0} ms)`); } catch (e) {
-    failed++;
-    console.log(`  ✗ ${t.name}\n    ${(e as Error).stack!.split('\n').slice(0, 3).join('\n    ')}`);
+    if (e instanceof Skip) console.log(`  - ${t.name} (skipped: ${e.message})`);
+    else {
+      failed++;
+      console.log(`  ✗ ${t.name}\n    ${(e as Error).stack!.split('\n').slice(0, 3).join('\n    ')}`);
+    }
   }
   openViewers.splice(0).forEach(s => s.close());
 }

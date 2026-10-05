@@ -26,6 +26,7 @@ export interface Config {
   fps: number;             // video mode frame rate
   chrome: string | null;   // path to a Chrome/Chromium binary; auto-detected when empty
   sandbox: boolean | 'auto';
+  headless: boolean | 'auto'; // auto: headed on Linux (Xvfb), headless elsewhere
   chromeArgs: string[];
   home: string;
 }
@@ -40,12 +41,13 @@ export const DEFAULTS: Omit<Config, 'home'> = {
   fps: 30,
   chrome: null,
   sandbox: 'auto',
+  headless: 'auto',
   chromeArgs: [],
 };
 
 const ENV: Partial<Record<keyof Config, string>> = {
   password: 'PASSWORD', bind: 'BIND', viewerPort: 'PORT', agentPort: 'AGENT_PORT',
-  idleMinutes: 'IDLE_MINUTES', screen: 'SCREEN', fps: 'FPS', chrome: 'CHROME', sandbox: 'SANDBOX',
+  idleMinutes: 'IDLE_MINUTES', screen: 'SCREEN', fps: 'FPS', chrome: 'CHROME', sandbox: 'SANDBOX', headless: 'HEADLESS',
 };
 
 function readFile(): Partial<Config> {
@@ -56,7 +58,12 @@ export function load(): Config {
   const raw: Record<string, unknown> = { ...DEFAULTS, ...readFile(), home: HOME };
   for (const [k, v] of Object.entries(ENV)) { const val = env(v); if (val !== undefined && val !== '') raw[k] = val; }
   for (const k of ['viewerPort', 'agentPort', 'idleMinutes', 'fps']) raw[k] = Number(raw[k]);
-  if (raw.sandbox === 'true' || raw.sandbox === 'false') raw.sandbox = raw.sandbox === 'true';
+  for (const k of ['sandbox', 'headless']) {
+    const v = String(raw[k]).toLowerCase();
+    if (['true', '1', 'yes', 'on'].includes(v)) raw[k] = true;
+    else if (['false', '0', 'no', 'off'].includes(v)) raw[k] = false;
+    else if (v !== 'auto') throw new Error(`${k} must be true, false or auto, got ${raw[k]}`);
+  }
   const cfg = raw as unknown as Config;
   if (!/^\d+x\d+$/.test(cfg.screen)) throw new Error(`screen must look like 1440x900, got ${cfg.screen}`);
   return cfg;
