@@ -1,6 +1,6 @@
 {
   "name": "ridealong",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "One logged-in browser for you and your AI agents: self-hosted Chrome with a web viewer, per-agent tab isolation and workspaces that sleep when idle.",
   "type": "module",
   "bin": {
@@ -24,7 +24,8 @@
     "node": ">=20"
   },
   "os": [
-    "linux"
+    "linux",
+    "darwin"
   ],
   "keywords": [
     "browser",
